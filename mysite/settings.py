@@ -29,6 +29,8 @@ DEBUG = True
 # ALLOWED_HOSTS = ['*']
 ALLOWED_HOSTS = ['beerdashboardproject.onrender.com']
 
+CSRF_TRUSTED_ORIGINS = ['https://beerdashboardproject.onrender.com/']
+
 
 # Application definition
 
