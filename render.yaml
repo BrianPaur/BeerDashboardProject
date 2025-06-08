@@ -7,7 +7,7 @@ services:
     startCommand: "gunicorn BeerDashboardProject.mysite.wsgi:application"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
-        value: BeerDashboard.settings
+        value: BeerDashboardProject.mysite.settings
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
