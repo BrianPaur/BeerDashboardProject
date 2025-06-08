@@ -1,0 +1,25 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+
+<form method="GET" action="{% url 'historical_data' %}">
+    {{ form.as_p }}
+
+    <button>Submit</button>
+
+</form>
+
+{{ chart|safe }}
+
+    {% if all_data %}
+        <ul>
+        {% for a in all_data %}
+            <li><a href="/dashboard/">{{ a.time_stamp }} | {{ a.set_temp }} | {{ a.current_temp }}</a></li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No data is available.</p>
+    {% endif %}
+
+{% endblock content %}
+
+

@@ -1,0 +1,16 @@
+# render.yaml
+services:
+  - type: web
+    name: beer-dashboard
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn mysite.wsgi:application"
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: BeerDashboard.settings
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "beer-dashboard.onrender.com"

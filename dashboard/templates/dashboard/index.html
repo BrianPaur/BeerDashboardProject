@@ -1,0 +1,257 @@
+{% load static %}
+{% csrf_token %}
+
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="" />
+        <title>Beer Dashboard</title>
+        <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
+        <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+        <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+    </head>
+
+  <body class="sb-nav-fixed">
+
+    <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
+        <!-- Navbar Brand-->
+        <a class="navbar-brand ps-3" href="index.html">Beer Dashboard</a>
+        <!-- Sidebar Toggle-->
+        <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" href="#!"><i class="fas fa-bars"></i></button>
+        <!-- Navbar Search-->
+        <form class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0">
+            <div class="input-group">
+                <input class="form-control" type="text" placeholder="Search for..." aria-label="Search for..." aria-describedby="btnNavbarSearch" />
+                <button class="btn btn-primary" id="btnNavbarSearch" type="button"><i class="fas fa-search"></i></button>
+            </div>
+        </form>
+        <!-- Navbar-->
+        <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-user fa-fw"></i></a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+<!--                    <li><a class="dropdown-item" href="#!">Settings</a></li>-->
+<!--                    <li><a class="dropdown-item" href="#!">Activity Log</a></li>-->
+<!--                    <li><hr class="dropdown-divider" /></li>-->
+                    {% if user.is_authenticated %}
+                        <li>
+                            <form method="post" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item">Logout</button>
+                            </form>
+                        </li>
+                    {% else %}
+                        <li><a class="dropdown-item" href="{% url 'login' %}">Login</a></li>
+                    {% endif %}
+                </ul>
+            </li>
+        </ul>
+    </nav>
+
+    <div id="layoutSidenav">
+        <div id="layoutSidenav_nav">
+            <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
+                <div class="sb-sidenav-menu">
+                    <div class="nav">
+                        <div class="sb-sidenav-menu-heading">Core</div>
+<!--                        <a class="nav-link" href="dashboard_view">-->
+<!--                            <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>-->
+<!--                            Dashboard-->
+<!--                        </a>-->
+
+<!--                        <a class="nav-link" href="historical_data">-->
+<!--                            <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>-->
+<!--                            Historical Data-->
+<!--                        </a>-->
+                        <a class="nav-link" href="update_google_sheet_url">
+                            <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
+                            Google Sheet Manager
+                        </a>
+                    </div>
+                </div>
+                <div class="sb-sidenav-footer">
+                    <div class="small">Logged in as:</div>
+                    {% if user.is_authenticated %}
+                        {{ user.username }}
+                    {% else %}
+                        Guest
+                    {% endif %}
+                </div>
+            </nav>
+        </div>
+        <div id="layoutSidenav_content">
+            <main>
+                <div class="container-fluid px-4">
+                    <h1 class="mt-4">Dashboard</h1>
+                    <ol class="breadcrumb mb-4">
+                        <li class="breadcrumb-item active">Beer Dashboard</li>
+                    </ol>
+
+                    <!-- Date Filter Form -->
+                    <form method="get" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="start_date">Start Date:</label>
+                                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ date_form.start_date.value }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="end_date">End Date:</label>
+                                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ date_form.end_date.value }}">
+                            </div>
+                            <div class="col-md-4 align-self-end">
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Google sheet selector -->
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <button type="submit" class="btn btn-primary">Load Data</button>
+                    </form>
+
+                    <!-- Temperature Setting Form -->
+                    <form method="post" class="mb-4">
+                        {% csrf_token %}
+                        <div class="row">
+                            <!-- Set Temperature Card -->
+                            <div class="col-md-4">
+                                <label for="temp_value">Set Temperature:</label>
+                                <input type="number" name="temp" id="temp_value" class="form-control" step="0.1" placeholder= "Current Temp: {{ latest_temp }}">
+                            </div>
+                            <div class="col-md-4 align-self-end">
+                                <button type="submit" class="btn btn-success">Set Temperature</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Temperature Feedback Message -->
+                    {% if temp_feedback %}
+                    <div class="alert alert-info" role="alert">
+                        {{ temp_feedback }}
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <!-- Temperature Over Time Line Graph -->
+                        <div class="col-xl-6">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <i class="fas fa-chart-area me-1"></i>
+                                    InkBird Temperature
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="temperatureChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Tilt Graph -->
+                        <div class="col-xl-6">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <i class="fas fa-chart-area me-1"></i>
+                                    Fermentation Temperature
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="tiltChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-table me-1"></i>
+                    Fermentation Data Table
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered" id="fermentationDataTable">
+                        <thead>
+                            <tr>
+                                <th>Time Stamp</th>
+                                <th>Beer</th>
+                                <th>Color</th>
+                                <th>Temperature</th>
+                                <th>SG</th>
+                                <th>Timepoint</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in df_json_sorted %}
+                                <tr>
+                                    <td>{{ entry.Timestamp }}</td>
+                                    <td>{{ entry.Beer }}</td>
+                                    <td>{{ entry.Color }}</td>
+                                    <td>{{ entry.Temp }}</td>
+                                    <td>{{ entry.SG }}</td>
+                                    <td>{{ entry.Timepoint }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">No data available</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            </main>
+            <footer class="py-4 bg-light mt-auto">
+                <div class="container-fluid px-4">
+                    <div class="d-flex align-items-center justify-content-between small">
+                        <div class="text-muted">Copyright &copy; Your Website 2023</div>
+                        <div>
+                            <a href="#">Privacy Policy</a>
+                            &middot;
+                            <a href="#">Terms &amp; Conditions</a>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js" crossorigin="anonymous"></script>
+    <script>
+    const temperatureData = {
+    labels: [{% for entry in data %}"{{ entry.time_stamp|date:'Y-m-d H:i:s' }}"{% if not forloop.last %}, {% endif %}{% endfor %}],
+    currentTemps: [{% for entry in data %}{{ entry.current_temp }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+    setTemps: [{% for entry in data %}{{ entry.set_temp }}{% if not forloop.last %}, {% endif %}{% endfor %}]
+    };
+    </script>
+    <script>
+    const dataFromDf = {{ df_json|safe }};
+    const labelsDf = dataFromDf.map(entry => entry.Timestamp);
+    const temperatureDf = dataFromDf.map(entry => parseFloat(entry.Temp));
+    </script>
+    <script src="{% static 'line_graph.js' %}"></script>
+    <script src="{% static 'tilt_data.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            $('#df_json').DataTable();  // Initialize DataTable
+        });
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          const sidebarToggle = document.getElementById("sidebarToggle");
+          const body = document.body;  // Get the <body> tag
+
+          sidebarToggle.addEventListener("click", function (e) {
+            e.preventDefault();
+            body.classList.toggle("sb-sidenav-toggled"); // Toggle the class on the body
+          });
+        });
+    </script>
+  </body>
+</html>
+
+
+
+
+
+

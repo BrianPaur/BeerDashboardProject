@@ -1,0 +1,49 @@
+{% extends 'dashboard/base.html' %}
+{% block content %}
+<h2>Add or Update Google Sheets Source</h2>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %} mt-2">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<td>
+    <a href="{% url 'index' %}" class="btn btn-danger btn-sm">Home</a>
+</td>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Save</button>
+</form>
+
+
+<h3>Existing Google Sheets</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Readable Name</th>
+            <th>Source URL</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for sheet in all_sheets %}
+        <tr>
+            <td>{{ sheet.readable_name }}</td>
+            <td>{{ sheet.sourceURL }}</td>
+            <td>
+                <a href="{% url 'update_google_sheet_url' sheet.pk %}" class="btn btn-sm btn-warning">Edit</a>
+            </td>
+            <td>
+                <a href="{% url 'delete_google_sheet' sheet.pk %}" class="btn btn-danger btn-sm">Delete</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
