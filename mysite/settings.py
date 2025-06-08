@@ -26,7 +26,8 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "unsafe-key")
 # DEBUG = os.environ.get("DEBUG", "False") == "True"
 DEBUG = True
 # ALLOWED_HOSTS = [os.getenv("ALLOWED_HOSTS", "localhost")]
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['https://beerdashboardproject.onrender.com/']
 
 
 # Application definition
