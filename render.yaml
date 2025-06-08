@@ -4,7 +4,7 @@ services:
     name: beer-dashboard
     env: python
     buildCommand: "./build.sh"
-    startCommand: "gunicorn BeerDashboardProject.dashboard.wsgi:application"
+    startCommand: "gunicorn BeerDashboardProject.mysite.wsgi:application"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: BeerDashboard.settings
