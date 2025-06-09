@@ -59,7 +59,7 @@ def index(request):
             selected_sheet = form.cleaned_data['google_sheet_url']
             selected_url = selected_sheet.sourceURL
             gc = gspread.service_account(
-                filename='C:/Users/Brian/PycharmProjects/BeerDashboardProject/.venv/BeerDashboard/dashboard/creds/credentials.json')
+                filename='C:/Users/Brian/PycharmProjects/BeerDashboardProject/dashboard/creds/credentials.json')
             sh = gc.open_by_url(selected_url)
             worksheet = sh.worksheet("Data")
             list_of_lists = worksheet.get('A2:F2972')
