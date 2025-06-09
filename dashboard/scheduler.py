@@ -12,12 +12,15 @@ def data_update():
     connection = openapi.connect()
 
     data = openapi.get(F"/v1.0/iot-03/devices/{DEVICE_ID}/status")
-    temp_data = TemperatureData(
-        time_stamp=datetime.datetime.now(),
-        current_temp=data['result'][3]['value'] / 10,
-        set_temp=data['result'][2]['value'] / 10,
-    )
-    temp_data.save()
+    if data['msg'] == 'No permissions. Your subscription to cloud development plan has expired.':
+        return data['msg']
+    else:
+        temp_data = TemperatureData(
+            time_stamp=datetime.datetime.now(),
+            current_temp=data['result'][3]['value'] / 10,
+            set_temp=data['result'][2]['value'] / 10,
+        )
+        temp_data.save()
 
 
 def start_data_update():

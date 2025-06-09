@@ -33,8 +33,11 @@ class TempSetForm(forms.Form):
         
     def temp_reading(self):
         data_pull = self.openapi.get(F"/v1.0/iot-03/devices/{DEVICE_ID}/status")
-        self.current_temp = data_pull['result'][3]['value'] / 10
-        return self.current_temp
+        if data_pull['msg'] == 'No permissions. Your subscription to cloud development plan has expired.':
+            return data_pull['msg']
+        else:
+            self.current_temp = data_pull['result'][3]['value'] / 10
+            return self.current_temp
 
 class GoogleSheetURLForm(forms.ModelForm):
     class Meta:

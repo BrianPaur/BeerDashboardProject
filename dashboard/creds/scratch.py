@@ -1,7 +1,7 @@
 import gspread
 import pandas as pd
 # from BeerDashboard.dashboard.models import FermentationData
-from BeerDashboard.dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID
+from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID
 from tuya_connector import TuyaOpenAPI
 
 openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
@@ -48,22 +48,30 @@ class TempControl:
 
     def temp_reading(self):
         data_pull = openapi.get(F"/v1.0/iot-03/devices/{DEVICE_ID}/status")
-        self.current_temp = data_pull['result'][3]['value'] / 10
-        return self.current_temp
+        if data_pull['msg'] == 'No permissions. Your subscription to cloud development plan has expired.':
+            return data_pull['msg']
+        else:
+            self.current_temp = data_pull['result'][3]['value'] / 10
+            return self.current_temp
 
     def temp_set_to(self):
         data_pull = openapi.get(F"/v1.0/iot-03/devices/{DEVICE_ID}/status")
-        self.temp_goal = data_pull['result'][2]['value'] / 10
-        return self.temp_goal
+        if data_pull['msg'] == 'No permissions. Your subscription to cloud development plan has expired.':
+            return data_pull['msg']
+        else:
+            self.temp_goal = data_pull['result'][2]['value'] / 10
+            return self.temp_goal
 
     def set_temp(self, temp):
         commands = {"commands": [{"code": "temp_set", "value": temp * 10}]}
         data_set = openapi.post(f"/v1.0/iot-03/devices/{DEVICE_ID}/commands", commands)
-        return data_set
+        if data_pull['msg'] == 'No permissions. Your subscription to cloud development plan has expired.':
+            return data_pull['msg']
+        else:
+            return data_set
 
 a = TempControl()
 print(a.temp_reading())
-print(type(70))
 
 
 
