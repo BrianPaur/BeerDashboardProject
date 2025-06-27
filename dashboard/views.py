@@ -258,7 +258,7 @@ def receive_tilt_data(request):
 
             # Parse timestamp safely
             time_str = data.get('time')
-            parsed_time = datetime.fromisoformat(time_str.replace("Z", "+00:00"))
+            parsed_time = datetime.fromisoformat(data.get('time').replace("Z", "+00:00"))
 
             FermentationDataTilt.objects.create(
                 name=data.get('name'),
