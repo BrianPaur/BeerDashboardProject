@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from tuya_connector import TuyaOpenAPI
 # from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID
 import json
-with open('/etc/secrets/device-creds.json') as f:
+with open('/etc/secrets/creds.json') as f:
     creds = json.load(f)
 
 ACCESS_ID = creds['ACCESS_ID']
