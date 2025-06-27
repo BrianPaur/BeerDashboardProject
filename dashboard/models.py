@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 from xmlrpc.client import boolean
 
 from django.conf.locale.ar.formats import DATE_FORMAT
