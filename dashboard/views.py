@@ -59,7 +59,7 @@ def index(request):
             selected_sheet = form.cleaned_data['google_sheet_url']
             selected_url = selected_sheet.sourceURL
             gc = gspread.service_account(
-                filename='C:/Users/Brian/PycharmProjects/BeerDashboardProject/dashboard/creds/credentials.json')
+                filename='/etc/secrets/credentials.json')
             sh = gc.open_by_url(selected_url)
             worksheet = sh.worksheet("Data")
             list_of_lists = worksheet.get('A2:F2972')
@@ -252,19 +252,24 @@ def add_google_sheet_url(request):
 
     return render(request, 'dashboard/add_google_sheet.html', {'form': form})
 
-@csrf_exempt  # Tilt Pi may not handle CSRF tokens
+@csrf_exempt
 def receive_tilt_data(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            # Extract and save relevant fields
+
+            # Parse timestamp safely
+            time_str = data.get('time')
+            parsed_time = datetime.fromisoformat(time_str.replace("Z", "+00:00"))
+
             FermentationDataTilt.objects.create(
                 name=data.get('name'),
                 temperature=data.get('temp'),
                 gravity=data.get('sg'),
                 color=data.get('color'),
-                timestamp=data.get('time')
+                timestamp=parsed_time
             )
+
             return JsonResponse({'status': 'success'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
