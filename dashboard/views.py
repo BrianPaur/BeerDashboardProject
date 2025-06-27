@@ -22,8 +22,6 @@ import time
 import json
 
 import datetime
-from tuya_connector import TuyaOpenAPI
-from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID
 
 import plotly.express as px
 import plotly.graph_objects as go
