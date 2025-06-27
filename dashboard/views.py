@@ -21,7 +21,7 @@ import schedule
 import time
 import json
 
-import datetime
+from datetime import datetime
 
 import plotly.express as px
 import plotly.graph_objects as go
