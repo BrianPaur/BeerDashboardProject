@@ -7,6 +7,7 @@ from django.template import loader
 from django.views.generic import ListView
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+import logging
 from django.contrib import messages
 from django.db import IntegrityError
 from django.contrib.auth import login
@@ -29,6 +30,8 @@ from plotly.subplots import make_subplots
 
 import gspread
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 def register(request):
     if request.method == 'POST':
@@ -255,6 +258,7 @@ def receive_tilt_data(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            logger.info("Received Tilt data: %s", data)
 
             # Parse timestamp safely
             time_str = data.get('time')
@@ -273,5 +277,11 @@ def receive_tilt_data(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     return JsonResponse({'status': 'invalid method'}, status=405)
 
+@csrf_exempt
+def tilt_debug(request):
+    logger.info("---- TILT DEBUG ENDPOINT ----")
+    logger.info("Method: %s", request.method)
+    logger.info("Headers: %s", dict(request.headers))
+    logger.info("Body: %s", request.body.decode('utf-8'))
 
-
+    return JsonResponse({'status': 'received', 'method': request.method})

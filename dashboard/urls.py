@@ -15,4 +15,5 @@ urlpatterns = [
     path("dashboard_view/", views.dashboard_view, name="dashboard_view"),
     path("dashboard_view_dark/", views.dashboard_view_dark, name="dashboard_view_dark"),
     path('tilt-data/', views.receive_tilt_data, name='receive_tilt_data'),
+    path('dashboard/debug-tilt/', views.tilt_debug, name='tilt_debug'),
 ]
