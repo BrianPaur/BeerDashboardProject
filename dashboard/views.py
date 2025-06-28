@@ -113,7 +113,7 @@ def index(request):
         temp_feedback = temp_form.set_temp(temp_form.cleaned_data['temp'])
 
     # Render the page
-    return render(request, 'dashboard/index.html', {
+    return render(request, '/index.html', {
         'data': data,
         'df_json': df_json,
         'df_json_sorted':df_json_sorted,
@@ -152,7 +152,7 @@ def historical_data(request):
     chart = fig.to_html()
 
     context = {"chart": chart, 'form':DateForm(), 'all_data':all_data }
-    return render(request, "dashboard/historical.html", context)
+    return render(request, "/historical.html", context)
 
 @login_required
 def dashboard_view(request):
@@ -172,7 +172,7 @@ def dashboard_view(request):
 
     fermentation_data = FermentationData.objects.all()
 
-    return render(request, 'dashboard/dashboard_view.html', {
+    return render(request, '/dashboard_view.html', {
         'data': data,
         'fermentation_data': fermentation_data,
         'request': request,  # Pass request object to use GET parameters in the form
@@ -193,7 +193,7 @@ def dashboard_view_dark(request):
 
     data = data.order_by('time_stamp')  # Ensure data is ordered by timestamp
 
-    return render(request, 'dashboard/dashboard_view_dark.html', {
+    return render(request, '/dashboard_view_dark.html', {
         'data': data,
         'request': request,  # Pass request object to use GET parameters in the form
     })
@@ -218,7 +218,7 @@ def update_google_sheet_url(request, pk=None):
     # Fetch all entries for display
     all_sheets = GoogleSheetSourceData.objects.all()
 
-    return render(request, 'dashboard/update_google_sheet_url.html', {
+    return render(request, '/update_google_sheet_url.html', {
         'form': form,
         'all_sheets': all_sheets,
     })
@@ -233,7 +233,7 @@ def delete_google_sheet(request, pk):
         messages.success(request, f'Successfully deleted "{readable_name}".')
         return redirect('update_google_sheet_url')  # Redirect to the index page or another relevant page.
 
-    return render(request, 'dashboard/delete_google_sheet.html', {'google_sheet': google_sheet})
+    return render(request, '/delete_google_sheet.html', {'google_sheet': google_sheet})
 
 @login_required
 def add_google_sheet_url(request):
@@ -251,7 +251,7 @@ def add_google_sheet_url(request):
     else:
         form = GoogleSheetSourceDataForm()
 
-    return render(request, 'dashboard/add_google_sheet.html', {'form': form})
+    return render(request, '/add_google_sheet.html', {'form': form})
 
 @csrf_exempt
 def receive_tilt_data(request):
