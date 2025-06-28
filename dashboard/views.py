@@ -269,6 +269,7 @@ def receive_tilt_data(request):
             else:
                 # If form-encoded (likely what Tilt Pi is sending)
                 data = request.POST
+                logger.info("Form POST keys: %s", list(data.keys()))
                 logger.info("Form POST data: %s", dict(data))
 
             # Extract data safely
