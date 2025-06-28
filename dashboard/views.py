@@ -255,23 +255,23 @@ def add_google_sheet_url(request):
 
 @csrf_exempt
 def receive_tilt_data(request):
-    import logging
-    logger = logging.getLogger(__name__)
+    logger.info("Tilt Pi request received")
+    logger.info("Method: %s", request.method)
+    logger.info("Headers: %s", dict(request.headers))
 
     if request.method == 'POST':
         try:
-            # Log everything right away
-            raw = request.body.decode('utf-8')
-            logger.info("Tilt POST body: %s", raw)
-
-            try:
+            # If JSON data
+            if request.content_type == "application/json":
+                raw = request.body.decode('utf-8')
+                logger.info("Raw JSON body: %s", raw)
                 data = json.loads(raw)
-            except json.JSONDecodeError as e:
-                logger.error("JSON decode error: %s", e)
-                return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+            else:
+                # If form-encoded (likely what Tilt Pi is sending)
+                data = request.POST
+                logger.info("Form POST data: %s", dict(data))
 
-            logger.info("Parsed Tilt JSON: %s", data)
-
+            # Extract data safely
             name = data.get('Beer', 'Unknown')
             temperature = float(data.get('Temp', 0))
             gravity = float(data.get('SG', 0))
@@ -279,12 +279,12 @@ def receive_tilt_data(request):
             time_str = data.get('Time')
 
             if not time_str:
+                logger.warning("No 'Time' field found")
                 return JsonResponse({'status': 'error', 'message': 'Missing Time field'}, status=400)
 
-            from dateutil import parser
             timestamp = parser.parse(time_str)
 
-            # Create DB entry
+            # Save to DB
             from .models import FermentationDataTilt
             FermentationDataTilt.objects.create(
                 name=name,
@@ -294,10 +294,11 @@ def receive_tilt_data(request):
                 timestamp=timestamp
             )
 
+            logger.info("Data saved successfully")
             return JsonResponse({'status': 'success'})
 
         except Exception as e:
-            logger.exception("Unexpected error")
+            logger.exception("Unexpected error in tilt-data view")
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
     return JsonResponse({'status': 'invalid method'}, status=405)
