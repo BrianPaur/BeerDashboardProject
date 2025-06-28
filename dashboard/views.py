@@ -262,7 +262,7 @@ def receive_tilt_data(request):
         try:
             # Log everything right away
             raw = request.body.decode('utf-8')
-            logger.info("Headers: %s", dict(request.headers))
+            logger.info("Tilt POST body: %s", raw)
 
             try:
                 data = json.loads(raw)
@@ -270,7 +270,7 @@ def receive_tilt_data(request):
                 logger.error("JSON decode error: %s", e)
                 return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
 
-            logger.info("Parsed Tilt JSON: %s", data)
+            logger.info("Headers: %s", dict(request.headers))
 
             name = data.get('Beer', 'Unknown')
             temperature = float(data.get('Temp', 0))
