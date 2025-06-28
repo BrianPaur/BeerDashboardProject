@@ -255,26 +255,51 @@ def add_google_sheet_url(request):
 
 @csrf_exempt
 def receive_tilt_data(request):
+    import logging
+    logger = logging.getLogger(__name__)
+
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            logger.info("Received Tilt data: %s", data)
+            # Log everything right away
+            raw = request.body.decode('utf-8')
+            logger.info("Tilt POST body: %s", raw)
 
-            # Parse timestamp safely
-            time_str = data.get('time')
-            parsed_time = datetime.fromisoformat(data.get('time').replace("Z", "+00:00"))
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError as e:
+                logger.error("JSON decode error: %s", e)
+                return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
 
+            logger.info("Parsed Tilt JSON: %s", data)
+
+            name = data.get('Beer', 'Unknown')
+            temperature = float(data.get('Temp', 0))
+            gravity = float(data.get('SG', 0))
+            color = data.get('Color', 'Unknown')
+            time_str = data.get('Time')
+
+            if not time_str:
+                return JsonResponse({'status': 'error', 'message': 'Missing Time field'}, status=400)
+
+            from dateutil import parser
+            timestamp = parser.parse(time_str)
+
+            # Create DB entry
+            from .models import FermentationDataTilt
             FermentationDataTilt.objects.create(
-                name=data.get('name'),
-                temperature=data.get('temp'),
-                gravity=data.get('sg'),
-                color=data.get('color'),
-                timestamp=parsed_time
+                name=name,
+                temperature=temperature,
+                gravity=gravity,
+                color=color,
+                timestamp=timestamp
             )
 
             return JsonResponse({'status': 'success'})
+
         except Exception as e:
+            logger.exception("Unexpected error")
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
     return JsonResponse({'status': 'invalid method'}, status=405)
 
 @csrf_exempt
