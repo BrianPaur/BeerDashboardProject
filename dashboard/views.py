@@ -260,14 +260,17 @@ def receive_tilt_data(request):
 
     if request.method == 'POST':
         try:
-            if request.content_type == "application/json":
-                raw = request.body.decode('utf-8')
-                data = json.loads(raw)
-            else:
-                # Handle form-encoded data (like Tilt Pi sends)
-                data = request.POST
+            # Log everything right away
+            raw = request.body.decode('utf-8')
+            logger.info("Tilt POST body: %s", raw)
 
-            logger.info("Parsed Tilt data: %s", data)
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError as e:
+                logger.error("JSON decode error: %s", e)
+                return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+
+            logger.info("Parsed Tilt JSON: %s", data)
 
             name = data.get('Beer', 'Unknown')
             temperature = float(data.get('Temp', 0))
@@ -281,6 +284,7 @@ def receive_tilt_data(request):
             from dateutil import parser
             timestamp = parser.parse(time_str)
 
+            # Create DB entry
             from .models import FermentationDataTilt
             FermentationDataTilt.objects.create(
                 name=name,
