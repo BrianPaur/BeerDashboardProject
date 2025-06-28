@@ -26,8 +26,8 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "unsafe-key")
 # DEBUG = os.environ.get("DEBUG", "False") == "True"
 DEBUG = True
 # ALLOWED_HOSTS = [os.getenv("ALLOWED_HOSTS", "localhost")]
-# ALLOWED_HOSTS = ['*']
-ALLOWED_HOSTS = ['beerdashboardproject.onrender.com']
+ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['beerdashboardproject.onrender.com','127.0.0.1']
 
 CSRF_TRUSTED_ORIGINS = [
     "https://beerdashboardproject.onrender.com",
@@ -130,6 +130,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LOGIN_REDIRECT_URL = '/dashboard/'
-LOGIN_URL = '/dashboard/accounts/login/'
-LOGOUT_REDIRECT_URL = '/dashboard/accounts/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGIN_URL = '/accounts/login/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
