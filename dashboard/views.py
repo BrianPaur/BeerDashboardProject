@@ -1,7 +1,7 @@
 from tempfile import template
 
 from django.http import HttpResponse
-from django.utils import timezone
+from django.utils.timezone import now
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template import loader
 from django.views.generic import ListView
@@ -277,13 +277,9 @@ def receive_tilt_data(request):
             temperature = float(data.get('Temp', 0))
             gravity = float(data.get('SG', 0))
             color = data.get('Color', 'Unknown')
-            time_str = data.get('Time')
+            time_str = data.get('Time') or data.get('Date')
 
-            if not time_str:
-                logger.warning("No 'Time' field found")
-                return JsonResponse({'status': 'error', 'message': 'Missing Time field'}, status=400)
-
-            timestamp = parser.parse(time_str)
+            timestamp = parser.parse(time_str) if time_str else now()
 
             # Save to DB
             from .models import FermentationDataTilt
