@@ -269,6 +269,7 @@ def receive_tilt_data(request):
             else:
                 # If form-encoded (likely what Tilt Pi is sending)
                 data = request.POST
+                logger.info("Form POST keys: %s", list(data.keys()))
                 logger.info("Form POST data: %s", dict(data))
 
             # Extract data safely
@@ -279,8 +280,7 @@ def receive_tilt_data(request):
             time_str = data.get('Time')
 
             if not time_str:
-                logger.info("Form POST keys: %s", list(data.keys()))
-                logger.info("Form POST data: %s", dict(data))
+                logger.warning("No 'Time' field found")
                 return JsonResponse({'status': 'error', 'message': 'Missing Time field'}, status=400)
 
             timestamp = parser.parse(time_str)
