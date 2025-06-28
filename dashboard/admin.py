@@ -41,7 +41,7 @@ class FermentationDataTiltAdmin(admin.ModelAdmin):
     (None, {"fields": ["timestamp"]}),
     (None, {"fields": ["comment"]}),
     ]
-    list_display = ["name","timestamp", "temperature", "gravity","color","timestamp","comment"]
+    list_display = ["timestamp","name","temperature","gravity","color","comment"]
     list_filter = ["timestamp"]
     search_fields = ["timestamp"]
 
