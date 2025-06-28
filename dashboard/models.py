@@ -40,7 +40,4 @@ class FermentationDataTilt(models.Model):
     gravity = models.FloatField()
     color = models.CharField(max_length=20, blank=True)
     timestamp = models.DateTimeField()
-    
-
-
-
+    comment = models.CharField(max_length=250, blank=True)

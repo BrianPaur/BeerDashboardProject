@@ -277,7 +277,9 @@ def receive_tilt_data(request):
             temperature = float(data.get('Temp', 0))
             gravity = float(data.get('SG', 0))
             color = data.get('Color', 'Unknown')
-            time_str = data.get('Time') or data.get('Date')
+            # time_str = data.get('Time') or data.get('Date')
+            time_str = data.get('formatteddate')
+            comment = data.get('comment','Unknown')
 
             timestamp = parser.parse(time_str) if time_str else now()
 
@@ -288,7 +290,8 @@ def receive_tilt_data(request):
                 temperature=temperature,
                 gravity=gravity,
                 color=color,
-                timestamp=timestamp
+                timestamp=timestamp,
+                comment=comment
             )
 
             logger.info("Data saved successfully")
