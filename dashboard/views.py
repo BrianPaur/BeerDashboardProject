@@ -262,7 +262,7 @@ def receive_tilt_data(request):
         try:
             # Log everything right away
             raw = request.body.decode('utf-8')
-            logger.info("Tilt POST body: %s", raw)
+            logger.info("Headers: %s", dict(request.headers))
 
             try:
                 data = json.loads(raw)
