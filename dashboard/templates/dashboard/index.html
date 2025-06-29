@@ -142,6 +142,10 @@
                             {% endfor %}
                         </table>
                     {% endif %}
+                    {% if tilt_chart_html %}
+                        <h3>Fermentation Graph for {{ tilt_batch_name }}</h3>
+                        <div>{{ tilt_chart_html|safe }}</div>
+                    {% endif %}
 
                     <!-- Temperature Setting Form -->
                     <form method="post" class="mb-4">

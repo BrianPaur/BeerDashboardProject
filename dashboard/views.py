@@ -115,9 +115,41 @@ def index(request):
     tilt_data = FermentationDataTilt.objects.none()  # Default to empty queryset
     tilt_batch_name = None
 
+    tilt_chart_html = None
+
     if request.method == "POST" and tilt_form.is_valid():
         tilt_batch_name = tilt_form.cleaned_data['name']
         tilt_data = FermentationDataTilt.objects.filter(name=tilt_batch_name).order_by('-timestamp')
+
+
+
+        if tilt_data.exists():
+            timestamps = [entry.timestamp for entry in tilt_data]
+            temps = [entry.temperature for entry in tilt_data]
+            gravities = [entry.gravity for entry in tilt_data]
+
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+            fig.add_trace(
+                go.Scatter(x=timestamps, y=temps, name="Temperature (°F)", line=dict(color='red')),
+                secondary_y=False,
+            )
+            fig.add_trace(
+                go.Scatter(x=timestamps, y=gravities, name="Gravity", line=dict(color='blue')),
+                secondary_y=True,
+            )
+
+            fig.update_layout(
+                title_text=f"Tilt Data for Batch: {tilt_batch_name}",
+                xaxis_title="Timestamp",
+                yaxis_title="Temperature (°F)",
+                legend=dict(x=0.01, y=0.99),
+                height=400
+            )
+
+            fig.update_yaxes(title_text="Gravity", secondary_y=True)
+
+            tilt_chart_html = fig.to_html(full_html=False)
 
     # Render the page
     return render(request, 'dashboard/index.html', {
@@ -130,6 +162,7 @@ def index(request):
         'tilt_form': tilt_form,
         'tilt_data': tilt_data,
         'tilt_batch_name': tilt_batch_name,
+        'tilt_chart_html': tilt_chart_html,
         'latest_temp':latest_temp,
         'form': form,
     })
