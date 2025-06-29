@@ -95,6 +95,27 @@
                         <li class="breadcrumb-item active">Beer Dashboard</li>
                     </ol>
 
+                    <!-- Temperature Setting Form -->
+                    <form method="post" class="mb-4">
+                        {% csrf_token %}
+                        <div class="row">
+                            <!-- Set Temperature Card -->
+                            <div class="col-md-4">
+                                <label for="temp_value">Set Freezer Temperature:</label>
+                                <input type="number" name="temp" id="temp_value" class="form-control" step="0.1" placeholder= "Current Temp: {{ latest_temp }}">
+                            </div>
+                            <div class="col-md-4 align-self-end">
+                                <button type="submit" class="btn btn-success">Set Temperature</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Temperature Feedback Message -->
+                    {% if temp_feedback %}
+                    <div class="alert alert-info" role="alert">
+                        {{ temp_feedback }}
+                    </div>
+                    {% endif %}
                     <!-- tilt batch selector -->
                     <div class="card mb-4">
                       <div class="card-header">
@@ -112,6 +133,21 @@
                       </div>
                     </div>
 
+                    <!-- tilt batch chart -->
+                    {% if tilt_chart_html %}
+                    <div class="card mb-4">
+                      <div class="card-header">
+                        <h5 class="mb-0">Fermentation Graph for "{{ tilt_batch_name }}"</h5>
+                      </div>
+                      <div class="card-body">
+                        <div class="chart-container">
+                          {{ tilt_chart_html|safe }}
+                        </div>
+                      </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- tilt batch table -->
                     {% if tilt_data %}
                     <div class="card mb-4">
                       <div class="card-header">
@@ -143,41 +179,6 @@
                           </table>
                         </div>
                       </div>
-                    </div>
-                    {% endif %}
-
-                    {% if tilt_chart_html %}
-                    <div class="card mb-4">
-                      <div class="card-header">
-                        <h5 class="mb-0">Fermentation Graph for "{{ tilt_batch_name }}"</h5>
-                      </div>
-                      <div class="card-body">
-                        <div class="chart-container">
-                          {{ tilt_chart_html|safe }}
-                        </div>
-                      </div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Temperature Setting Form -->
-                    <form method="post" class="mb-4">
-                        {% csrf_token %}
-                        <div class="row">
-                            <!-- Set Temperature Card -->
-                            <div class="col-md-4">
-                                <label for="temp_value">Set Temperature:</label>
-                                <input type="number" name="temp" id="temp_value" class="form-control" step="0.1" placeholder= "Current Temp: {{ latest_temp }}">
-                            </div>
-                            <div class="col-md-4 align-self-end">
-                                <button type="submit" class="btn btn-success">Set Temperature</button>
-                            </div>
-                        </div>
-                    </form>
-
-                    <!-- Temperature Feedback Message -->
-                    {% if temp_feedback %}
-                    <div class="alert alert-info" role="alert">
-                        {{ temp_feedback }}
                     </div>
                     {% endif %}
                 </div>
