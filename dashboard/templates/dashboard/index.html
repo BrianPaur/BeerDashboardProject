@@ -114,6 +114,35 @@
                         <button type="submit" class="btn btn-primary">Load Data</button>
                     </form>
 
+                    <!-- tilt batch selector -->
+                    <form method="POST">
+                        {% csrf_token %}
+                        {{ tilt_form.as_p }}
+                        <button type="submit">View Batch</button>
+                    </form>
+
+                    {% if tilt_batch_name %}
+                        <h4>Data for: {{ tilt_batch_name }}</h4>
+                        <table>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Temperature</th>
+                                <th>Gravity</th>
+                                <th>Color</th>
+                                <th>Comment</th>
+                            </tr>
+                            {% for entry in tilt_data %}
+                            <tr>
+                                <td>{{ entry.timestamp }}</td>
+                                <td>{{ entry.temperature }}</td>
+                                <td>{{ entry.gravity }}</td>
+                                <td>{{ entry.color }}</td>
+                                <td>{{ entry.comment }}</td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                    {% endif %}
+
                     <!-- Temperature Setting Form -->
                     <form method="post" class="mb-4">
                         {% csrf_token %}

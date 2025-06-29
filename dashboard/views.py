@@ -15,7 +15,7 @@ from django.contrib.auth.decorators import login_required
 
 
 from .models import TemperatureData,FermentationData, GoogleSheetSourceData, ProfileDataSelect, FermentationDataTilt
-from .forms import DateForm, DateFilterForm, TempSetForm, GoogleSheetURLForm, SelectGoogleSheetForm, UserRegistrationForm
+from .forms import DateForm, DateFilterForm, TempSetForm, GoogleSheetURLForm, SelectGoogleSheetForm, UserRegistrationForm, TiltDataSelectForm
 from .scheduler import data_update
 
 import schedule
@@ -104,13 +104,20 @@ def index(request):
         latest_temp = temperature_data.order_by('-time_stamp').values_list('current_temp', flat=True).first()
         form = SelectGoogleSheetForm()
 
-
-
     # Handle TempSetForm
     temp_form = TempSetForm(request.POST or None)
     temp_feedback = None
     if request.method == "POST" and temp_form.is_valid():
         temp_feedback = temp_form.set_temp(temp_form.cleaned_data['temp'])
+
+    # Handle tilt batch select
+    tilt_form = TiltDataSelectForm(request.POST or None)
+    tilt_data = FermentationDataTilt.objects.none()  # Default to empty queryset
+    tilt_batch_name = None
+
+    if request.method == "POST" and tilt_form.is_valid():
+        tilt_batch_name = tilt_form.cleaned_data['name']
+        tilt_data = FermentationDataTilt.objects.filter(name=tilt_batch_name).order_by('-timestamp')
 
     # Render the page
     return render(request, 'dashboard/index.html', {
@@ -120,6 +127,9 @@ def index(request):
         'date_form': date_form,
         'temp_form': temp_form,
         'temp_feedback': temp_feedback,
+        'tilt_form': tilt_form,
+        'tilt_data': tilt_data,
+        'tilt_batch_name': tilt_batch_name,
         'latest_temp':latest_temp,
         'form': form,
     })

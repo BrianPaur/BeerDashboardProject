@@ -1,18 +1,18 @@
 from django import forms
 from datetime import date, timedelta
 from tuya_connector import TuyaOpenAPI
-# from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID
-import json
-with open('/etc/secrets/creds.json') as f:
-    creds = json.load(f)
+from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID
+# import json
+# with open('/etc/secrets/creds.json') as f:
+#     creds = json.load(f)
 
-ACCESS_ID = creds['ACCESS_ID']
-ACCESS_KEY = creds['ACCESS_KEY']
-ENDPOINT = creds['ENDPOINT']
-DEVICE_ID = creds['DEVICE_ID']
+# ACCESS_ID = creds['ACCESS_ID']
+# ACCESS_KEY = creds['ACCESS_KEY']
+# ENDPOINT = creds['ENDPOINT']
+# DEVICE_ID = creds['DEVICE_ID']
 
 from django import forms
-from .models import GoogleSheetSourceData
+from .models import GoogleSheetSourceData, FermentationDataTilt
 from django.contrib.auth.models import User
 
 class DateForm(forms.Form):
@@ -103,6 +103,14 @@ class UserRegistrationForm(forms.ModelForm):
             raise forms.ValidationError('Passwords don’t match.')
         return cd['password2']
 
+class TiltDataSelectForm(forms.Form):
+    name = forms.ChoiceField(choices=[], label='Select Batch')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Populate the dropdown with distinct batch names
+        batch_names = FermentationDataTilt.objects.values_list('name', flat=True).distinct()
+        self.fields['name'].choices = [(name, name) for name in batch_names if name]
 
 
 # class DateFilterForm(forms.Form):
