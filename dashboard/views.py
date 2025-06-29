@@ -65,14 +65,11 @@ def index(request):
     tilt_form = TiltDataSelectForm(request.POST or None)
     tilt_data = FermentationDataTilt.objects.none()  # Default to empty queryset
     tilt_batch_name = None
-
     tilt_chart_html = None
 
     if request.method == "POST" and tilt_form.is_valid():
         tilt_batch_name = tilt_form.cleaned_data['name']
         tilt_data = FermentationDataTilt.objects.filter(name=tilt_batch_name).order_by('-timestamp')
-
-
 
         if tilt_data.exists():
             timestamps = [entry.timestamp for entry in tilt_data]
