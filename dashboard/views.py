@@ -15,7 +15,7 @@ from django.contrib.auth.decorators import login_required
 
 
 from .models import TemperatureData,FermentationData, GoogleSheetSourceData, ProfileDataSelect, FermentationDataTilt
-from .forms import DateForm, DateFilterForm, TempSetForm, GoogleSheetURLForm, SelectGoogleSheetForm, UserRegistrationForm, TiltDataSelectForm
+from .forms import DateForm, DateFilterForm, TempSetFermForm, TempSetFreezeForm, GoogleSheetURLForm, SelectGoogleSheetForm, UserRegistrationForm, TiltDataSelectForm
 from .scheduler import data_update
 
 import schedule
@@ -49,10 +49,17 @@ def register(request):
 @login_required
 def index(request):
     # Handle TempSetForm
-    temp_form = TempSetForm(request.POST or None)
-    temp_feedback = None
-    if request.method == "POST" and temp_form.is_valid():
-        temp_feedback = temp_form.set_temp(temp_form.cleaned_data['temp'])
+    ferm_form = TempSetFermForm(request.POST or None, prefix="ferm")
+    freeze_form = TempSetFreezeForm(request.POST or None, prefix="freeze")
+
+    ferm_feedback = None
+    freeze_feedback = None
+
+    if request.method == "POST":
+        if 'ferm-temp-submit' in request.POST and ferm_form.is_valid():
+            ferm_feedback = ferm_form.set_temp(ferm_form.cleaned_data['temp'])
+        elif 'freeze-temp-submit' in request.POST and freeze_form.is_valid():
+            freeze_feedback = freeze_form.set_temp(freeze_form.cleaned_data['temp'])
 
     # Handle tilt batch select
     tilt_form = TiltDataSelectForm(request.POST or None)
@@ -97,8 +104,10 @@ def index(request):
 
     # Render the page
     return render(request, 'dashboard/index.html', {
-        'temp_form': temp_form,
-        'temp_feedback': temp_feedback,
+        'ferm_form': ferm_form,
+        'freeze_form': freeze_form,
+        'ferm_feedback': ferm_feedback,
+        'freeze_feedback': freeze_feedback,
         'tilt_form': tilt_form,
         'tilt_data': tilt_data,
         'tilt_batch_name': tilt_batch_name,

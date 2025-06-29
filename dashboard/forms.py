@@ -1,7 +1,7 @@
 from django import forms
 from datetime import date, timedelta
 from tuya_connector import TuyaOpenAPI
-# from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID
+# from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID,DEVICE_ID2
 import json
 with open('/etc/secrets/creds.json') as f:
     creds = json.load(f)
@@ -10,6 +10,10 @@ ACCESS_ID = creds['ACCESS_ID']
 ACCESS_KEY = creds['ACCESS_KEY']
 ENDPOINT = creds['ENDPOINT']
 DEVICE_ID = creds['DEVICE_ID']
+
+with open('/etc/secrets/creds2.json') as f:
+    creds = json.load(f)
+DEVICE_ID2 = creds['DEVICE_ID']
 
 from django import forms
 from .models import GoogleSheetSourceData, FermentationDataTilt
@@ -23,7 +27,7 @@ class DateFilterForm(forms.Form):
     start_date = forms.DateField(required=False, widget=forms.TextInput(attrs={'type': 'date'}))
     end_date = forms.DateField(required=False, widget=forms.TextInput(attrs={'type': 'date'}))
 
-class TempSetForm(forms.Form):
+class TempSetFermForm(forms.Form):
     temp = forms.FloatField(min_value=0, label="Temperature")
     openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
     openapi.connect()
@@ -31,21 +35,47 @@ class TempSetForm(forms.Form):
     def set_temp(self, temp):
         commands = {"commands": [{"code": "temp_set", "value": int(temp * 10)}]}
 
-        data_set = self.openapi.post(f"/v1.0/iot-03/devices/{DEVICE_ID}/commands", commands)
+        data_set_ferm = self.openapi.post(f"/v1.0/iot-03/devices/{DEVICE_ID}/commands", commands)
 
         # Return response or error details
-        if 'success' in data_set and data_set['success']:
-            return f"Temperature set to {temp}°C successfully."
+        if 'success' in data_set_ferm and data_set_ferm['success']:
+            return f"Temperature set to {temp}°F successfully."
         else:
-            error_message = data_set.get('msg', 'Unknown error')
+            error_message = data_set_ferm.get('msg', 'Unknown error')
             return f"Failed to set temperature: {error_message}"
         
     def temp_reading(self):
-        data_pull = self.openapi.get(F"/v1.0/iot-03/devices/{DEVICE_ID}/status")
-        if data_pull['msg'] == 'No permissions. Your subscription to cloud development plan has expired.':
-            return data_pull['msg']
+        data_pull_ferm = self.openapi.get(F"/v1.0/iot-03/devices/{DEVICE_ID}/status")
+        if data_pull_ferm['msg'] == 'No permissions. Your subscription to cloud development plan has expired.':
+            return data_pull_ferm['msg']
         else:
-            self.current_temp = data_pull['result'][3]['value'] / 10
+            self.current_temp = data_pull_ferm['result'][3]['value'] / 10
+            return self.current_temp
+
+
+class TempSetFreezeForm(forms.Form):
+    temp = forms.FloatField(min_value=0, label="Temperature")
+    openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
+    openapi.connect()
+
+    def set_temp(self, temp):
+        commands = {"commands": [{"code": "temp_set", "value": int(temp * 10)}]}
+
+        data_set_freeze = self.openapi.post(f"/v1.0/iot-03/devices/{DEVICE_ID2}/commands", commands)
+
+        # Return response or error details
+        if 'success' in data_set_freeze and data_set_freeze['success']:
+            return f"Temperature set to {temp}°F successfully."
+        else:
+            error_message = data_set_freeze.get('msg', 'Unknown error')
+            return f"Failed to set temperature: {error_message}"
+
+    def temp_reading(self):
+        data_pull_freeze = self.openapi.get(F"/v1.0/iot-03/devices/{DEVICE_ID2}/status")
+        if data_pull_freeze['msg'] == 'No permissions. Your subscription to cloud development plan has expired.':
+            return data_pull_freeze['msg']
+        else:
+            self.current_temp = data_pull_freeze['result'][3]['value'] / 10
             return self.current_temp
 
 class GoogleSheetURLForm(forms.ModelForm):

@@ -95,27 +95,53 @@
                         <li class="breadcrumb-item active">Beer Dashboard</li>
                     </ol>
 
-                    <!-- Temperature Setting Form -->
-                    <form method="post" class="mb-4">
-                        {% csrf_token %}
-                        <div class="row">
-                            <!-- Set Temperature Card -->
-                            <div class="col-md-4">
-                                <label for="temp_value">Set Freezer Temperature:</label>
-                                <input type="number" name="temp" id="temp_value" class="form-control" step="0.1" placeholder= "Current Temp: {{ latest_temp }}">
-                            </div>
-                            <div class="col-md-4 align-self-end">
-                                <button type="submit" class="btn btn-success">Set Temperature</button>
-                            </div>
-                        </div>
-                    </form>
+                    <div class="row mb-4 gx-4">
 
-                    <!-- Temperature Feedback Message -->
-                    {% if temp_feedback %}
-                    <div class="alert alert-info" role="alert">
-                        {{ temp_feedback }}
+                      <!-- Ferm Controller -->
+                      <div class="col-lg-6 col-12">
+                        <div class="card h-100">
+                          <div class="card-header">Set Ferm Temp</div>
+                          <div class="card-body">
+                            <form method="POST">
+                              {% csrf_token %}
+                              {{ ferm_form.management_form }}
+                              <div class="form-group mb-2">
+                                {{ ferm_form.temp.label_tag }}
+                                {{ ferm_form.temp|add_class:"form-control" }}
+                              </div>
+                              <button type="submit" name="ferm-temp-submit" class="btn btn-primary">Set Ferm Temp</button>
+                              {% if ferm_feedback %}
+                                <p class="mt-2 text-success">{{ ferm_feedback }}</p>
+                              {% endif %}
+                            </form>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Freeze Controller -->
+                      <div class="col-lg-6 col-12">
+                        <div class="card h-100">
+                          <div class="card-header">Set Freeze Temp</div>
+                          <div class="card-body">
+                            <form method="POST">
+                              {% csrf_token %}
+                              {{ freeze_form.management_form }}
+                              <div class="form-group mb-2">
+                                {{ freeze_form.temp.label_tag }}
+                                {{ freeze_form.temp|add_class:"form-control" }}
+                              </div>
+                              <button type="submit" name="freeze-temp-submit" class="btn btn-primary">Set Freeze Temp</button>
+                              {% if freeze_feedback %}
+                                <p class="mt-2 text-success">{{ freeze_feedback }}</p>
+                              {% endif %}
+                            </form>
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
-                    {% endif %}
+
+
                     <!-- tilt batch selector -->
                     <div class="card mb-4">
                       <div class="card-header">
