@@ -170,7 +170,7 @@ def google_sheet_dashboard(request):
         form = SelectGoogleSheetForm()
 
     # Handle TempSetForm
-    temp_form = TempSetForm(request.POST or None)
+    temp_form = TempSetFermForm(request.POST or None)
     temp_feedback = None
     if request.method == "POST" and temp_form.is_valid():
         temp_feedback = temp_form.set_temp(temp_form.cleaned_data['temp'])
