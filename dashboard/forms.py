@@ -12,6 +12,7 @@ from tuya_connector import TuyaOpenAPI
 # DEVICE_ID = creds['DEVICE_ID']
 # DEVICE_ID2 = creds['DEVICE_ID2']
 
+import os
 ACCESS_ID = os.getenv('ACCESS_ID')
 ACCESS_KEY = os.getenv('ACCESS_KEY')
 ENDPOINT = os.getenv('ENDPOINT')
