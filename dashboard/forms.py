@@ -1,15 +1,15 @@
 from django import forms
 from datetime import date, timedelta
 from tuya_connector import TuyaOpenAPI
-from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID
-# import json
-# with open('/etc/secrets/creds.json') as f:
-#     creds = json.load(f)
+# from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID
+import json
+with open('/etc/secrets/creds.json') as f:
+    creds = json.load(f)
 
-# ACCESS_ID = creds['ACCESS_ID']
-# ACCESS_KEY = creds['ACCESS_KEY']
-# ENDPOINT = creds['ENDPOINT']
-# DEVICE_ID = creds['DEVICE_ID']
+ACCESS_ID = creds['ACCESS_ID']
+ACCESS_KEY = creds['ACCESS_KEY']
+ENDPOINT = creds['ENDPOINT']
+DEVICE_ID = creds['DEVICE_ID']
 
 from django import forms
 from .models import GoogleSheetSourceData, FermentationDataTilt
