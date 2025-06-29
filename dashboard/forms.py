@@ -11,8 +11,8 @@ ACCESS_KEY = creds['ACCESS_KEY']
 ENDPOINT = creds['ENDPOINT']
 DEVICE_ID = creds['DEVICE_ID']
 
-with open('/etc/secrets/creds2.json') as f:
-    creds = json.load(f)
+with open('/etc/secrets/creds2.json') as g:
+    creds = json.load(g)
 DEVICE_ID2 = creds['DEVICE_ID']
 
 from django import forms
