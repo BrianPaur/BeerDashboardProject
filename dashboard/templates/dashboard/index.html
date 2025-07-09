@@ -253,25 +253,25 @@
       fetchLatestTiltData();
       setInterval(fetchLatestTiltData, 300000); // 5 minutes
     </script>
-<!--    <script>-->
-<!--      function updateDeviceTempPlaceholders() {-->
-<!--          fetch('/api/current-device-temps/')-->
-<!--              .then(response => response.json())-->
-<!--              .then(data => {-->
-<!--                  if (data.ferm_temp !== null) {-->
-<!--                      document.getElementById('ferm-temp-input').placeholder = `Current: ${data.ferm_temp} °F`;-->
-<!--                  }-->
-<!--                  if (data.freeze_temp !== null) {-->
-<!--                      document.getElementById('freeze-temp-input').placeholder = `Current: ${data.freeze_temp} °F`;-->
-<!--                  }-->
-<!--              })-->
-<!--              .catch(error => console.error('Failed to update device temps:', error));-->
-<!--      }-->
+    <script>
+      function updateDeviceTempPlaceholders() {
+          fetch('/api/current-device-temps/')
+              .then(response => response.json())
+              .then(data => {
+                  if (data.ferm_temp !== null) {
+                      document.getElementById('ferm-temp-input').placeholder = `Current: ${data.ferm_temp} °F`;
+                  }
+                  if (data.freeze_temp !== null) {
+                      document.getElementById('freeze-temp-input').placeholder = `Current: ${data.freeze_temp} °F`;
+                  }
+              })
+              .catch(error => console.error('Failed to update device temps:', error));
+      }
 
-<!--      // Run once on page load-->
-<!--      updateDeviceTempPlaceholders();-->
-<!--      // Then every 60 minutes (3,600,000 ms)-->
-<!--      setInterval(updateDeviceTempPlaceholders, 3600000);-->
-<!--    </script>-->
+      // Run once on page load
+      updateDeviceTempPlaceholders();
+      // Then every 60 minutes (3,600,000 ms)
+      setInterval(updateDeviceTempPlaceholders, 3600000);
+    </script>
   </body>
 </html>
