@@ -22,13 +22,8 @@
         <a class="navbar-brand ps-3" href="{% url 'index' %}">Beer Dashboard</a>
         <!-- Sidebar Toggle-->
         <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" href="#!"><i class="fas fa-bars"></i></button>
-        <!-- Navbar Search-->
-        <form class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0">
-            <div class="input-group">
-                <input class="form-control" type="text" placeholder="Search for..." aria-label="Search for..." aria-describedby="btnNavbarSearch" />
-                <button class="btn btn-primary" id="btnNavbarSearch" type="button"><i class="fas fa-search"></i></button>
-            </div>
-        </form>
+        <!-- Navbar Logout-->
+        <form class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0"></form>
         <!-- Navbar-->
         <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
             <li class="nav-item dropdown">
@@ -94,8 +89,29 @@
                     <ol class="breadcrumb mb-4">
                         <li class="breadcrumb-item active">Beer Dashboard</li>
                     </ol>
+                <div class="row mb-4 gx-4">
 
-                    <div class="row mb-4 gx-4">
+                    <!-- temperature and gravity display -->
+
+                      <div class="col-lg-6 col-12">
+                        <div class="card text-white bg-info">
+                          <div class="card-header">Latest Tilt Temperature</div>
+                          <div class="card-body">
+                            <h5 class="card-title" id="latest-temp">Loading...</h5>
+                            <p class="card-text" id="latest-temp-time"></p>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-lg-6 col-12">
+                        <div class="card text-white bg-secondary">
+                          <div class="card-header">Latest Gravity</div>
+                          <div class="card-body">
+                            <h5 class="card-title" id="latest-gravity">Loading...</h5>
+                            <p class="card-text" id="latest-gravity-name"></p>
+                          </div>
+                        </div>
+                      </div>
+
 
                       <!-- Ferm Controller -->
                       <div class="col-lg-6 col-12">
@@ -256,6 +272,31 @@
           });
         });
     </script>
+    <script>
+        function fetchLatestTiltData() {
+            fetch("/api/latest-tilt-data/")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById("latest-temp").textContent = "No data";
+                        document.getElementById("latest-gravity").textContent = "No data";
+                    } else {
+                        document.getElementById("latest-temp").textContent = `${data.temperature} °F`;
+                        document.getElementById("latest-temp-time").textContent = `Updated at ${data.timestamp}`;
+                        document.getElementById("latest-gravity").textContent = data.gravity.toFixed(3);
+                        document.getElementById("latest-gravity-name").textContent = `Batch: ${data.name}`;
+                    }
+                })
+                .catch(err => {
+                    console.error("Failed to fetch tilt data:", err);
+                });
+        }
+
+        // Initial call + repeat every 5 mins
+        fetchLatestTiltData();
+        setInterval(fetchLatestTiltData, 300000);
+    </script>
+
   </body>
 </html>
 
