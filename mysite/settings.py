@@ -25,7 +25,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "unsafe-key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = os.environ.get("DEBUG", "False") == "True"
-DEBUG = True
+DEBUG = False
 # ALLOWED_HOSTS = [os.getenv("ALLOWED_HOSTS", "localhost")]
 ALLOWED_HOSTS = ['*']
 # ALLOWED_HOSTS = ['beerdashboardproject.onrender.com','127.0.0.1']
