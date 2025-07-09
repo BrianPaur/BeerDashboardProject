@@ -18,5 +18,4 @@ urlpatterns = [
     path('debug-tilt/', views.tilt_debug, name='tilt_debug'),
     path('google_sheets_dashboard/', views.google_sheet_dashboard, name='google_sheets_dashboard'),
     path('api/latest-tilt-data/', views.get_latest_tilt_data, name='get_latest_tilt_data'),
-    # path('api/current-device-temps/', views.get_current_device_temps, name='get_current_device_temps'),
 ]
