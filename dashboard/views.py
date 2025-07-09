@@ -56,12 +56,6 @@ def index(request):
     ferm_feedback = None
     freeze_feedback = None
 
-    if request.method == "POST":
-        if 'ferm-temp-submit' in request.POST and ferm_form.is_valid():
-            ferm_feedback = ferm_form.set_temp(ferm_form.cleaned_data['temp'])
-        elif 'freeze-temp-submit' in request.POST and freeze_form.is_valid():
-            freeze_feedback = freeze_form.set_temp(freeze_form.cleaned_data['temp'])
-
     # Handle tilt batch select
     tilt_form = TiltDataSelectForm(request.POST or None)
     tilt_data = FermentationDataTilt.objects.none()  # Default to empty queryset
