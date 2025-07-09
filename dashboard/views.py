@@ -56,6 +56,12 @@ def index(request):
     ferm_feedback = None
     freeze_feedback = None
 
+    ferm_form = TempSetFreezeForm(request.POST or None, prefix="ferm")
+    freeze_form = TempSetFreezeForm(request.POST or None,prefix="freeze")
+
+    ferm_temp_reading = ferm_form.temp_reading()
+    freeze_temp_reading = freeze_form.temp_reading()
+
     if request.method == "POST":
         if 'ferm-temp-submit' in request.POST and ferm_form.is_valid():
             ferm_feedback = ferm_form.set_temp(ferm_form.cleaned_data['temp'])
@@ -110,6 +116,8 @@ def index(request):
         'tilt_data': tilt_data,
         'tilt_batch_name': tilt_batch_name,
         'tilt_chart_html': tilt_chart_html,
+        'ferm_temp_reading':ferm_temp_reading,
+        'freeze_temp_reading':freeze_temp_reading,
     })
 
 @login_required
@@ -389,3 +397,18 @@ def get_latest_tilt_data(request):
         })
     else:
         return JsonResponse({'error': 'No data found'}, status=404)
+
+@require_GET
+@login_required
+def get_current_device_temps(request):
+    try:
+        ferm_form = TempSetFermForm()
+        freeze_form = TempSetFreezeForm()
+        ferm_temp = ferm_form.temp_reading()
+        freeze_temp = freeze_form.temp_reading()
+        return JsonResponse({
+            'ferm_temp': round(ferm_temp, 1) if isinstance(ferm_temp, (int, float)) else None,
+            'freeze_temp': round(freeze_temp, 1) if isinstance(freeze_temp, (int, float)) else None,
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

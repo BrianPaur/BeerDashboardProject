@@ -110,7 +110,7 @@
                       {{ ferm_form.management_form }}
                       <div class="form-group mb-2">
                         {{ ferm_form.temp.label_tag }}
-                        {{ ferm_form.temp|add_class:"form-control" }}
+                        {{ ferm_form.temp|add_class:"form-control"|attr:"placeholder:Current: %s °F"|format:ferm_temp_reading|attr:"id:ferm-temp-input" }}
                       </div>
                       <button type="submit" name="ferm-temp-submit" class="btn btn-primary">Set Ferm Temp</button>
                       {% if ferm_feedback %}<p class="mt-2 text-success">{{ ferm_feedback }}</p>{% endif %}
@@ -128,7 +128,7 @@
                       {{ freeze_form.management_form }}
                       <div class="form-group mb-2">
                         {{ freeze_form.temp.label_tag }}
-                        {{ freeze_form.temp|add_class:"form-control" }}
+                        {{ freeze_form.temp|add_class:"form-control"|attr:"placeholder:Current: %s °F"|format:freeze_temp_reading|attr:"id:freeze-temp-input" }}
                       </div>
                       <button type="submit" name="freeze-temp-submit" class="btn btn-primary">Set Freeze Temp</button>
                       {% if freeze_feedback %}<p class="mt-2 text-success">{{ freeze_feedback }}</p>{% endif %}
@@ -252,6 +252,26 @@
 
       fetchLatestTiltData();
       setInterval(fetchLatestTiltData, 300000); // 5 minutes
+    </script>
+    <script>
+      function updateDeviceTempPlaceholders() {
+          fetch('/api/current-device-temps/')
+              .then(response => response.json())
+              .then(data => {
+                  if (data.ferm_temp !== null) {
+                      document.getElementById('ferm-temp-input').placeholder = `Current: ${data.ferm_temp} °F`;
+                  }
+                  if (data.freeze_temp !== null) {
+                      document.getElementById('freeze-temp-input').placeholder = `Current: ${data.freeze_temp} °F`;
+                  }
+              })
+              .catch(error => console.error('Failed to update device temps:', error));
+      }
+
+      // Run once on page load
+      updateDeviceTempPlaceholders();
+      // Then every 60 minutes (3,600,000 ms)
+      setInterval(updateDeviceTempPlaceholders, 3600000);
     </script>
   </body>
 </html>
