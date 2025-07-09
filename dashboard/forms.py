@@ -12,13 +12,6 @@ ENDPOINT = creds['ENDPOINT']
 DEVICE_ID = creds['DEVICE_ID']
 DEVICE_ID2 = creds['DEVICE_ID2']
 
-# import os
-# ACCESS_ID = os.getenv('ACCESS_ID')
-# ACCESS_KEY = os.getenv('ACCESS_KEY')
-# ENDPOINT = os.getenv('ENDPOINT')
-# DEVICE_ID = os.getenv('DEVICE_ID')
-# DEVICE_ID2 = os.getenv('DEVICE_ID2')
-
 from django import forms
 from .models import GoogleSheetSourceData, FermentationDataTilt
 from django.contrib.auth.models import User

@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.db import IntegrityError
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_GET
 
 
 from .models import TemperatureData,FermentationData, GoogleSheetSourceData, ProfileDataSelect, FermentationDataTilt
@@ -374,3 +375,17 @@ def tilt_debug(request):
     logger.info("Body: %s", request.body.decode('utf-8'))
 
     return JsonResponse({'status': 'received', 'method': request.method})
+
+@require_GET
+@login_required
+def get_latest_tilt_data(request):
+    latest = FermentationDataTilt.objects.order_by('-timestamp').first()
+    if latest:
+        return JsonResponse({
+            'temperature': latest.temperature,
+            'gravity': latest.gravity,
+            'timestamp': latest.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'name': latest.name
+        })
+    else:
+        return JsonResponse({'error': 'No data found'}, status=404)

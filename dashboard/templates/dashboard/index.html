@@ -2,306 +2,256 @@
 {% load form_tags %}
 {% csrf_token %}
 
+<!DOCTYPE html>
 <html lang="en-US">
-    <head>
-        <meta charset="utf-8" />
-        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <meta name="description" content="" />
-        <meta name="author" content="" />
-        <title>Beer Dashboard</title>
-        <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
-        <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-        <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
-    </head>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <title>Beer Dashboard</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+  </head>
 
   <body class="sb-nav-fixed">
-
+    <!-- Top Navigation -->
     <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
-        <!-- Navbar Brand-->
-        <a class="navbar-brand ps-3" href="{% url 'index' %}">Beer Dashboard</a>
-        <!-- Sidebar Toggle-->
-        <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" href="#!"><i class="fas fa-bars"></i></button>
-        <!-- Navbar Logout-->
-        <form class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0"></form>
-        <!-- Navbar-->
-        <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-user fa-fw"></i></a>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-<!--                    <li><a class="dropdown-item" href="#!">Settings</a></li>-->
-<!--                    <li><a class="dropdown-item" href="#!">Activity Log</a></li>-->
-<!--                    <li><hr class="dropdown-divider" /></li>-->
-                    {% if user.is_authenticated %}
-                        <li>
-                            <form method="post" action="{% url 'logout' %}">
-                                {% csrf_token %}
-                                <button type="submit" class="dropdown-item">Logout</button>
-                            </form>
-                        </li>
-                    {% else %}
-                        <li><a class="dropdown-item" href="{% url 'login' %}">Login</a></li>
-                    {% endif %}
-                </ul>
+      <a class="navbar-brand ps-3" href="{% url 'index' %}">Beer Dashboard</a>
+      <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle"><i class="fas fa-bars"></i></button>
+
+      <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-user fa-fw"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+            {% if user.is_authenticated %}
+            <li>
+              <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="dropdown-item">Logout</button>
+              </form>
             </li>
-        </ul>
+            {% else %}
+            <li><a class="dropdown-item" href="{% url 'login' %}">Login</a></li>
+            {% endif %}
+          </ul>
+        </li>
+      </ul>
     </nav>
 
     <div id="layoutSidenav">
-        <div id="layoutSidenav_nav">
-            <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
-                <div class="sb-sidenav-menu">
-                    <div class="nav">
-                        <div class="sb-sidenav-menu-heading">Core</div>
-<!--                        <a class="nav-link" href="dashboard_view">-->
-<!--                            <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>-->
-<!--                            Dashboard-->
-<!--                        </a>-->
+      <!-- Sidebar -->
+      <div id="layoutSidenav_nav">
+        <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
+          <div class="sb-sidenav-menu">
+            <div class="nav">
+              <div class="sb-sidenav-menu-heading">Core</div>
+              <a class="nav-link" href="update_google_sheet_url">
+                <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
+                Google Sheet Manager
+              </a>
+              <a class="nav-link" href="google_sheets_dashboard">
+                <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
+                Google Sheets Dashboard
+              </a>
+            </div>
+          </div>
+          <div class="sb-sidenav-footer">
+            <div class="small">Logged in as:</div>
+            {{ user.username|default:"Guest" }}
+          </div>
+        </nav>
+      </div>
 
-<!--                        <a class="nav-link" href="historical_data">-->
-<!--                            <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>-->
-<!--                            Historical Data-->
-<!--                        </a>-->
-                        <a class="nav-link" href="update_google_sheet_url">
-                            <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
-                            Google Sheet Manager
-                        </a>
-                        <a class="nav-link" href="google_sheets_dashboard">
-                            <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
-                            Google Sheets Dashboard
-                        </a>
-                    </div>
+      <!-- Main Content -->
+      <div id="layoutSidenav_content">
+        <main>
+          <div class="container-fluid px-4">
+            <h1 class="mt-4">Dashboard</h1>
+            <ol class="breadcrumb mb-4">
+              <li class="breadcrumb-item active">Beer Dashboard</li>
+            </ol>
+
+            <!-- Tilt AJAX Cards -->
+            <div class="row mb-4 gx-4">
+              <div class="col-lg-6 col-12">
+                <div class="card text-white bg-info">
+                  <div class="card-header">Latest Tilt Temperature</div>
+                  <div class="card-body">
+                    <h5 class="card-title" id="latest-temp">Loading...</h5>
+                    <p class="card-text" id="latest-temp-time"></p>
+                  </div>
                 </div>
-                <div class="sb-sidenav-footer">
-                    <div class="small">Logged in as:</div>
-                    {% if user.is_authenticated %}
-                        {{ user.username }}
-                    {% else %}
-                        Guest
-                    {% endif %}
+              </div>
+              <div class="col-lg-6 col-12">
+                <div class="card text-white bg-secondary">
+                  <div class="card-header">Latest Gravity</div>
+                  <div class="card-body">
+                    <h5 class="card-title" id="latest-gravity">Loading...</h5>
+                    <p class="card-text" id="latest-gravity-name"></p>
+                  </div>
                 </div>
-            </nav>
-        </div>
-        <div id="layoutSidenav_content">
-            <main>
-                <div class="container-fluid px-4">
-                    <h1 class="mt-4">Dashboard</h1>
-                    <ol class="breadcrumb mb-4">
-                        <li class="breadcrumb-item active">Beer Dashboard</li>
-                    </ol>
-                <div class="row mb-4 gx-4">
+              </div>
+            </div>
 
-                    <!-- temperature and gravity display -->
-
-                      <div class="col-lg-6 col-12">
-                        <div class="card text-white bg-info">
-                          <div class="card-header">Latest Tilt Temperature</div>
-                          <div class="card-body">
-                            <h5 class="card-title" id="latest-temp">Loading...</h5>
-                            <p class="card-text" id="latest-temp-time"></p>
-                          </div>
-                        </div>
+            <!-- Set Temp Controls -->
+            <div class="row mb-4 gx-4">
+              <div class="col-lg-6 col-12">
+                <div class="card h-100">
+                  <div class="card-header">Set Ferm Temp</div>
+                  <div class="card-body">
+                    <form method="POST">
+                      {% csrf_token %}
+                      {{ ferm_form.management_form }}
+                      <div class="form-group mb-2">
+                        {{ ferm_form.temp.label_tag }}
+                        {{ ferm_form.temp|add_class:"form-control" }}
                       </div>
-                      <div class="col-lg-6 col-12">
-                        <div class="card text-white bg-secondary">
-                          <div class="card-header">Latest Gravity</div>
-                          <div class="card-body">
-                            <h5 class="card-title" id="latest-gravity">Loading...</h5>
-                            <p class="card-text" id="latest-gravity-name"></p>
-                          </div>
-                        </div>
-                      </div>
-
-
-                      <!-- Ferm Controller -->
-                      <div class="col-lg-6 col-12">
-                        <div class="card h-100">
-                          <div class="card-header">Set Ferm Temp</div>
-                          <div class="card-body">
-                            <form method="POST">
-                              {% csrf_token %}
-                              {{ ferm_form.management_form }}
-                              <div class="form-group mb-2">
-                                {{ ferm_form.temp.label_tag }}
-                                {{ ferm_form.temp|add_class:"form-control" }}
-                              </div>
-                              <button type="submit" name="ferm-temp-submit" class="btn btn-primary">Set Ferm Temp</button>
-                              {% if ferm_feedback %}
-                                <p class="mt-2 text-success">{{ ferm_feedback }}</p>
-                              {% endif %}
-                            </form>
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Freeze Controller -->
-                      <div class="col-lg-6 col-12">
-                        <div class="card h-100">
-                          <div class="card-header">Set Freeze Temp</div>
-                          <div class="card-body">
-                            <form method="POST">
-                              {% csrf_token %}
-                              {{ freeze_form.management_form }}
-                              <div class="form-group mb-2">
-                                {{ freeze_form.temp.label_tag }}
-                                {{ freeze_form.temp|add_class:"form-control" }}
-                              </div>
-                              <button type="submit" name="freeze-temp-submit" class="btn btn-primary">Set Freeze Temp</button>
-                              {% if freeze_feedback %}
-                                <p class="mt-2 text-success">{{ freeze_feedback }}</p>
-                              {% endif %}
-                            </form>
-                          </div>
-                        </div>
-                      </div>
-
-                    </div>
-
-
-                    <!-- tilt batch selector -->
-                    <div class="card mb-4">
-                      <div class="card-header">
-                        <h5 class="mb-0">Select a Tilt Batch</h5>
-                      </div>
-                      <div class="card-body">
-                        <form method="POST">
-                          {% csrf_token %}
-                          <div class="form-group mb-3">
-                            {{ tilt_form.name.label_tag }}
-                            {{ tilt_form.name|add_class:"form-control" }}
-                          </div>
-                          <button type="submit" class="btn btn-primary">View Batch</button>
-                        </form>
-                      </div>
-                    </div>
-
-                    <!-- tilt batch chart -->
-                    {% if tilt_chart_html %}
-                    <div class="card mb-4">
-                      <div class="card-header">
-                        <h5 class="mb-0">Fermentation Graph for "{{ tilt_batch_name }}"</h5>
-                      </div>
-                      <div class="card-body">
-                        <div class="chart-container">
-                          {{ tilt_chart_html|safe }}
-                        </div>
-                      </div>
-                    </div>
-                    {% endif %}
-
-                    <!-- tilt batch table -->
-                    {% if tilt_data %}
-                    <div class="card mb-4">
-                      <div class="card-header">
-                        <h5 class="mb-0">Tilt Data Table for "{{ tilt_batch_name }}"</h5>
-                      </div>
-                      <div class="card-body">
-                        <div class="table-responsive">
-                          <table class="table table-striped table-bordered table-hover">
-                            <thead class="thead-dark">
-                              <tr>
-                                <th>Timestamp</th>
-                                <th>Temperature (°F)</th>
-                                <th>Gravity</th>
-                                <th>Color</th>
-                                <th>Comment</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {% for entry in tilt_data %}
-                              <tr>
-                                <td>{{ entry.timestamp }}</td>
-                                <td>{{ entry.temperature }}</td>
-                                <td>{{ entry.gravity }}</td>
-                                <td>{{ entry.color }}</td>
-                                <td>{{ entry.comment }}</td>
-                              </tr>
-                              {% endfor %}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                    {% endif %}
+                      <button type="submit" name="ferm-temp-submit" class="btn btn-primary">Set Ferm Temp</button>
+                      {% if ferm_feedback %}<p class="mt-2 text-success">{{ ferm_feedback }}</p>{% endif %}
+                    </form>
+                  </div>
                 </div>
-            </main>
-            <footer class="py-4 bg-light mt-auto">
-                <div class="container-fluid px-4">
-                    <div class="d-flex align-items-center justify-content-between small">
-                        <div class="text-muted">Copyright &copy; Your Website 2023</div>
-                        <div>
-                            <a href="#">Privacy Policy</a>
-                            &middot;
-                            <a href="#">Terms &amp; Conditions</a>
-                        </div>
-                    </div>
+              </div>
+
+              <div class="col-lg-6 col-12">
+                <div class="card h-100">
+                  <div class="card-header">Set Freeze Temp</div>
+                  <div class="card-body">
+                    <form method="POST">
+                      {% csrf_token %}
+                      {{ freeze_form.management_form }}
+                      <div class="form-group mb-2">
+                        {{ freeze_form.temp.label_tag }}
+                        {{ freeze_form.temp|add_class:"form-control" }}
+                      </div>
+                      <button type="submit" name="freeze-temp-submit" class="btn btn-primary">Set Freeze Temp</button>
+                      {% if freeze_feedback %}<p class="mt-2 text-success">{{ freeze_feedback }}</p>{% endif %}
+                    </form>
+                  </div>
                 </div>
-            </footer>
-        </div>
+              </div>
+            </div>
+
+            <!-- Tilt Batch Selector -->
+            <div class="card mb-4">
+              <div class="card-header"><h5>Select a Tilt Batch</h5></div>
+              <div class="card-body">
+                <form method="POST">
+                  {% csrf_token %}
+                  <div class="form-group mb-3">
+                    {{ tilt_form.name.label_tag }}
+                    {{ tilt_form.name|add_class:"form-control" }}
+                  </div>
+                  <button type="submit" class="btn btn-primary">View Batch</button>
+                </form>
+              </div>
+            </div>
+
+            {% if tilt_chart_html %}
+            <!-- Tilt Chart -->
+            <div class="card mb-4">
+              <div class="card-header"><h5>Fermentation Graph for: {{ tilt_batch_name }}</h5></div>
+              <div class="card-body">
+                <div class="chart-container">{{ tilt_chart_html|safe }}</div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if tilt_data %}
+            <!-- Tilt Data Table -->
+            <div class="card mb-4">
+              <div class="card-header"><h5>Tilt Data Table for "{{ tilt_batch_name }}"</h5></div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-striped table-bordered table-hover">
+                    <thead class="thead-dark">
+                      <tr>
+                        <th>Timestamp</th>
+                        <th>Temperature (°F)</th>
+                        <th>Gravity</th>
+                        <th>Color</th>
+                        <th>Comment</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for entry in tilt_data %}
+                      <tr>
+                        <td>{{ entry.timestamp }}</td>
+                        <td>{{ entry.temperature }}</td>
+                        <td>{{ entry.gravity }}</td>
+                        <td>{{ entry.color }}</td>
+                        <td>{{ entry.comment }}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="py-4 bg-light mt-auto">
+          <div class="container-fluid px-4">
+            <div class="d-flex align-items-center justify-content-between small">
+              <div class="text-muted">Copyright &copy; Your Website 2023</div>
+              <div>
+                <a href="#">Privacy Policy</a>
+                &middot;
+                <a href="#">Terms &amp; Conditions</a>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
     </div>
+
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js" crossorigin="anonymous"></script>
-    <script>
-    const temperatureData = {
-    labels: [{% for entry in data %}"{{ entry.time_stamp|date:'Y-m-d H:i:s' }}"{% if not forloop.last %}, {% endif %}{% endfor %}],
-    currentTemps: [{% for entry in data %}{{ entry.current_temp }}{% if not forloop.last %}, {% endif %}{% endfor %}],
-    setTemps: [{% for entry in data %}{{ entry.set_temp }}{% if not forloop.last %}, {% endif %}{% endfor %}]
-    };
-    </script>
-    <script>
-    const dataFromDf = {{ df_json|safe }};
-    const labelsDf = dataFromDf.map(entry => entry.Timestamp);
-    const temperatureDf = dataFromDf.map(entry => parseFloat(entry.Temp));
-    </script>
     <script src="{% static 'line_graph.js' %}"></script>
     <script src="{% static 'tilt_data.js' %}"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
     <script>
-        $(document).ready(function() {
-            $('#df_json').DataTable();  // Initialize DataTable
+      $(document).ready(function () {
+        $('#df_json').DataTable();
+      });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("sidebarToggle").addEventListener("click", function (e) {
+          e.preventDefault();
+          document.body.classList.toggle("sb-sidenav-toggled");
         });
-    </script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-          const sidebarToggle = document.getElementById("sidebarToggle");
-          const body = document.body;  // Get the <body> tag
+      });
 
-          sidebarToggle.addEventListener("click", function (e) {
-            e.preventDefault();
-            body.classList.toggle("sb-sidenav-toggled"); // Toggle the class on the body
-          });
-        });
-    </script>
-    <script>
-        function fetchLatestTiltData() {
-            fetch("/api/latest-tilt-data/")
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        document.getElementById("latest-temp").textContent = "No data";
-                        document.getElementById("latest-gravity").textContent = "No data";
-                    } else {
-                        document.getElementById("latest-temp").textContent = `${data.temperature} °F`;
-                        document.getElementById("latest-temp-time").textContent = `Updated at ${data.timestamp}`;
-                        document.getElementById("latest-gravity").textContent = data.gravity.toFixed(3);
-                        document.getElementById("latest-gravity-name").textContent = `Batch: ${data.name}`;
-                    }
-                })
-                .catch(err => {
-                    console.error("Failed to fetch tilt data:", err);
-                });
-        }
+      function fetchLatestTiltData() {
+        fetch("/api/latest-tilt-data/")
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              document.getElementById("latest-temp").textContent = "No data";
+              document.getElementById("latest-gravity").textContent = "No data";
+            } else {
+              document.getElementById("latest-temp").textContent = `${data.temperature} °F`;
+              document.getElementById("latest-temp-time").textContent = `Updated at ${data.timestamp}`;
+              document.getElementById("latest-gravity").textContent = data.gravity.toFixed(3);
+              document.getElementById("latest-gravity-name").textContent = `Batch: ${data.name}`;
+            }
+          })
+          .catch(err => console.error("Failed to fetch tilt data:", err));
+      }
 
-        // Initial call + repeat every 5 mins
-        fetchLatestTiltData();
-        setInterval(fetchLatestTiltData, 300000);
+      fetchLatestTiltData();
+      setInterval(fetchLatestTiltData, 300000); // 5 minutes
     </script>
-
   </body>
 </html>
-
-
-
-
-
-
