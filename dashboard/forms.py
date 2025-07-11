@@ -40,15 +40,27 @@ class TempSetFermForm(forms.Form):
         else:
             error_message = data_set_ferm.get('msg', 'Unknown error')
             return f"Failed to set temperature: {error_message}"
-        
-    def temp_reading(self):
-        data_pull_ferm = self.openapi.get(F"/v1.0/iot-03/devices/{DEVICE_ID}/status")
-        if data_pull_ferm['msg'] == 'No permissions. Your subscription to cloud development plan has expired.':
-            return data_pull_ferm['msg']
-        else:
-            self.current_temp = data_pull_ferm['result'][3]['value'] / 10
-            return self.current_temp
 
+class TempGetFermForm(forms.Form):
+    openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
+    openapi.connect()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._status_data = None  # Internal cache
+
+    def _get_status_data(self):
+        if self._status_data is None:
+            self._status_data = self.openapi.get(f"/v1.0/iot-03/devices/{DEVICE_ID}/status")
+        return self._status_data
+
+    def temp_reading(self):
+        data = self._get_status_data()
+        return data['result'][3]['value'] / 10
+
+    def set_temp(self):
+        data = self._get_status_data()
+        return data['result'][2]['value'] / 10
 
 class TempSetFreezeForm(forms.Form):
     temp = forms.FloatField(min_value=0, label="Temperature")
@@ -67,13 +79,27 @@ class TempSetFreezeForm(forms.Form):
             error_message = data_set_freeze.get('msg', 'Unknown error')
             return f"Failed to set temperature: {error_message}"
 
+class TempGetFreezeForm(forms.Form):
+    openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
+    openapi.connect()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._status_data = None  # Internal cache
+
+    def _get_status_data(self):
+        if self._status_data is None:
+            self._status_data = self.openapi.get(f"/v1.0/iot-03/devices/{DEVICE_ID2}/status")
+        return self._status_data
+
     def temp_reading(self):
-        data_pull_freeze = self.openapi.get(F"/v1.0/iot-03/devices/{DEVICE_ID2}/status")
-        if data_pull_freeze['msg'] == 'No permissions. Your subscription to cloud development plan has expired.':
-            return data_pull_freeze['msg']
-        else:
-            self.current_temp = data_pull_freeze['result'][3]['value'] / 10
-            return self.current_temp
+        data = self._get_status_data()
+        return data['result'][3]['value'] / 10
+
+    def set_temp(self):
+        data = self._get_status_data()
+        return data['result'][2]['value'] / 10
+
 
 class GoogleSheetURLForm(forms.ModelForm):
     class Meta:
@@ -139,19 +165,3 @@ class TiltDataSelectForm(forms.Form):
         batch_names = FermentationDataTilt.objects.values_list('name', flat=True).distinct()
         self.fields['name'].choices = [(name, name) for name in batch_names if name]
 
-
-# class DateFilterForm(forms.Form):
-#     start_date = forms.DateField(
-#         required=False,
-#         widget=forms.TextInput(attrs={'type': 'date'})
-#     )
-#     end_date = forms.DateField(
-#         required=False,
-#         widget=forms.TextInput(attrs={'type': 'date'})
-#     )
-#
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         # Set initial values for the date fields
-#         self.fields['start_date'].initial = date.today() + timedelta(days=-1)
-#         self.fields['end_date'].initial = date.today() + timedelta(days=1)

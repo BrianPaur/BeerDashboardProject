@@ -18,4 +18,6 @@ urlpatterns = [
     path('debug-tilt/', views.tilt_debug, name='tilt_debug'),
     path('google_sheets_dashboard/', views.google_sheet_dashboard, name='google_sheets_dashboard'),
     path('api/latest-tilt-data/', views.get_latest_tilt_data, name='get_latest_tilt_data'),
+    path('api/latest-freeze-ink-data/', views.get_inkbird_freeze_data, name='get_latest_freeze_ink_data'),
+    path('api/latest-ferm-ink-data/', views.get_inkbird_ferm_data, name='get_latest_ferm_ink_data'),
 ]

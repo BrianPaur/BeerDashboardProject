@@ -16,8 +16,7 @@ from django.views.decorators.http import require_GET
 
 
 from .models import TemperatureData,FermentationData, GoogleSheetSourceData, ProfileDataSelect, FermentationDataTilt
-from .forms import DateForm, DateFilterForm, TempSetFermForm, TempSetFreezeForm, GoogleSheetURLForm, SelectGoogleSheetForm, UserRegistrationForm, TiltDataSelectForm
-# , TempGetFermForm, TempGetFreezeForm
+from .forms import DateForm, DateFilterForm, TempSetFermForm, TempSetFreezeForm, GoogleSheetURLForm, SelectGoogleSheetForm, UserRegistrationForm, TiltDataSelectForm , TempGetFreezeForm, TempGetFermForm
 from .scheduler import data_update
 
 import schedule
@@ -66,8 +65,8 @@ def index(request):
 
     # Handle getting current temps
 
-    current_ferm_temp = TempGetFermForm(request.GET or None, prefix="c_ferm")
-    current_freeze_temp = TempGetFreezeForm(request.GET or None, prefix="c_freeze")
+    # current_ferm_temp = TempGetFermForm(request.GET or None, prefix="c_ferm")
+    # current_freeze_temp = TempGetFreezeForm(request.GET or None, prefix="c_freeze")
 
     # Handle tilt batch select
     tilt_form = TiltDataSelectForm(request.POST or None)
@@ -117,8 +116,8 @@ def index(request):
         'tilt_data': tilt_data,
         'tilt_batch_name': tilt_batch_name,
         'tilt_chart_html': tilt_chart_html,
-        'current_ferm_temp':current_ferm_temp,
-        'current_freeze_temp':current_freeze_temp,
+        # 'current_ferm_temp':current_ferm_temp,
+        # 'current_freeze_temp':current_freeze_temp,
     })
 
 @login_required
@@ -399,17 +398,32 @@ def get_latest_tilt_data(request):
     else:
         return JsonResponse({'error': 'No data found'}, status=404)
 
-# @require_GET
-# @login_required
-# def get_current_device_temps(request):
-#     try:
-#         ferm_form = TempSetFermForm()
-#         freeze_form = TempSetFreezeForm()
-#         ferm_temp = ferm_form.temp_reading()
-#         freeze_temp = freeze_form.temp_reading()
-#         return JsonResponse({
-#             'ferm_temp': round(ferm_temp, 1) if isinstance(ferm_temp, (int, float)) else None,
-#             'freeze_temp': round(freeze_temp, 1) if isinstance(freeze_temp, (int, float)) else None,
-#         })
-#     except Exception as e:
-#         return JsonResponse({'error': str(e)}, status=500)
+@require_GET
+@login_required
+def get_inkbird_freeze_data(request):
+    freeze_form = TempGetFreezeForm()
+    freeze_current = freeze_form.temp_reading()
+    freeze_target = freeze_form.set_temp()
+
+    if freeze_form:
+        return JsonResponse({
+            'freeze_set_temp': freeze_target,
+            'freeze_current_temp': freeze_current,
+        })
+    else:
+        return JsonResponse({'error': 'No data found'}, status=404)
+
+@require_GET
+@login_required
+def get_inkbird_ferm_data(request):
+    ferm_form = TempGetFermForm()
+    ferm_current = ferm_form.temp_reading()
+    ferm_target = ferm_form.set_temp()
+
+    if ferm_form:
+        return JsonResponse({
+            'ferm_set_temp': ferm_target,
+            'ferm_current_temp': ferm_current,
+        })
+    else:
+        return JsonResponse({'error': 'No data found'}, status=404)

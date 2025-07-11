@@ -99,6 +99,28 @@
               </div>
             </div>
 
+            <!-- Inkbird data -->
+            <div class="row mb-4 gx-4">
+              <div class="col-lg-6 col-12">
+                <div class="card text-white bg-info">
+                  <div class="card-header">Current Ferm Temp</div>
+                  <div class="card-body">
+                    <h5 class="card-title" id="ferm-current-temp">Loading...</h5>
+                    <p class="card-text" id="ferm-set-temp"></p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-6 col-12">
+                <div class="card text-white bg-secondary">
+                  <div class="card-header">Current Freeze Temp</div>
+                  <div class="card-body">
+                    <h5 class="card-title" id="freeze-current-temp">Loading...</h5>
+                    <p class="card-text" id="freeze-set-temp"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Set Temp Controls -->
             <div class="row mb-4 gx-4">
               <div class="col-lg-6 col-12">
@@ -166,7 +188,7 @@
             {% if tilt_data %}
             <!-- Tilt Data Table -->
             <div class="card mb-4">
-              <div class="card-header"><h5>Tilt Data Table for "{{ tilt_batch_name }}"</h5></div>
+              <div class="card-header"><h5>Tilt Data Table for: {{ tilt_batch_name }}</h5></div>
               <div class="card-body">
                 <div class="table-responsive">
                   <table class="table table-striped table-bordered table-hover">
@@ -254,24 +276,64 @@
       setInterval(fetchLatestTiltData, 300000); // 5 minutes
     </script>
     <script>
-      function updateDeviceTempPlaceholders() {
-          fetch('/api/current-device-temps/')
-              .then(response => response.json())
-              .then(data => {
-                  if (data.ferm_temp !== null) {
-                      document.getElementById('ferm-temp-input').placeholder = `Current: ${data.ferm_temp} °F`;
-                  }
-                  if (data.freeze_temp !== null) {
-                      document.getElementById('freeze-temp-input').placeholder = `Current: ${data.freeze_temp} °F`;
-                  }
-              })
-              .catch(error => console.error('Failed to update device temps:', error));
+      $(document).ready(function () {
+        $('#df_json').DataTable();
+      });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("sidebarToggle").addEventListener("click", function (e) {
+          e.preventDefault();
+          document.body.classList.toggle("sb-sidenav-toggled");
+        });
+      });
+
+      function fetchLatestFreezeData() {
+        fetch("/api/latest-freeze-ink-data/")
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              document.getElementById("freeze-current-temp").textContent = "No data";
+              document.getElementById("freeze-set-temp").textContent = "No data";
+            } else {
+              document.getElementById("freeze-current-temp").textContent = `Current: ${data.freeze_current_temp} °F`;
+              document.getElementById("freeze-set-temp").textContent = `Target: ${data.freeze_set_temp} °F`;
+            }
+          })
+          .catch(err => console.error("Failed to fetch tilt data:", err));
       }
 
-      // Run once on page load
-      updateDeviceTempPlaceholders();
-      // Then every 60 minutes (3,600,000 ms)
-      setInterval(updateDeviceTempPlaceholders, 3600000);
+      fetchLatestFreezeData();
+      setInterval(fetchLatestTiltData, 300000); // 5 minutes
+    </script>
+    <script>
+      $(document).ready(function () {
+        $('#df_json').DataTable();
+      });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("sidebarToggle").addEventListener("click", function (e) {
+          e.preventDefault();
+          document.body.classList.toggle("sb-sidenav-toggled");
+        });
+      });
+
+      function fetchLatestFermData() {
+        fetch("/api/latest-ferm-ink-data/")
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              document.getElementById("ferm-current-temp").textContent = "No data";
+              document.getElementById("ferm-set-temp").textContent = "No data";
+            } else {
+              document.getElementById("ferm-current-temp").textContent = `${data.ferm_current_temp} °F`;
+              document.getElementById("ferm-set-temp").textContent = `${data.ferm_set_temp} °F`;
+            }
+          })
+          .catch(err => console.error("Failed to fetch tilt data:", err));
+      }
+
+      fetchLatestFermData();
+      setInterval(fetchLatestTiltData, 300000); // 5 minutes
     </script>
   </body>
 </html>
