@@ -325,8 +325,8 @@
               document.getElementById("ferm-current-temp").textContent = "No data";
               document.getElementById("ferm-set-temp").textContent = "No data";
             } else {
-              document.getElementById("ferm-current-temp").textContent = `${data.ferm_current_temp} °F`;
-              document.getElementById("ferm-set-temp").textContent = `${data.ferm_set_temp} °F`;
+              document.getElementById("ferm-current-temp").textContent = `Current: ${data.ferm_current_temp} °F`;
+              document.getElementById("ferm-set-temp").textContent = `Target: ${data.ferm_set_temp} °F`;
             }
           })
           .catch(err => console.error("Failed to fetch tilt data:", err));
