@@ -16,7 +16,7 @@ from django.views.decorators.http import require_GET
 
 
 from .models import TemperatureData,FermentationData, GoogleSheetSourceData, ProfileDataSelect, FermentationDataTilt
-from .forms import DateForm, DateFilterForm, TempSetFermForm, TempSetFreezeForm, GoogleSheetURLForm, SelectGoogleSheetForm, UserRegistrationForm, TiltDataSelectForm
+from .forms import DateForm, DateFilterForm, TempSetFermForm, TempSetFreezeForm, GoogleSheetURLForm, SelectGoogleSheetForm, UserRegistrationForm, TiltDataSelectForm, TempGetFermForm, TempGetFreezeForm
 from .scheduler import data_update
 
 import schedule
@@ -49,12 +49,24 @@ def register(request):
 
 @login_required
 def index(request):
+
     # Handle TempSetForm
     ferm_form = TempSetFermForm(request.POST or None, prefix="ferm")
     freeze_form = TempSetFreezeForm(request.POST or None, prefix="freeze")
 
     ferm_feedback = None
     freeze_feedback = None
+
+    if request.method == "POST":
+        if 'ferm-temp-submit' in request.POST and ferm_form.is_valid():
+            ferm_feedback = ferm_form.set_temp(ferm_form.cleaned_data['temp'])
+        elif 'freeze-temp-submit' in request.POST and freeze_form.is_valid():
+            freeze_feedback = freeze_form.set_temp(freeze_form.cleaned_data['temp'])
+
+    # Handle getting current temps
+
+    current_ferm_temp = TempGetFermForm(request.GET or None, prefix="c_ferm")
+    current_freeze_temp = TempGetFreezeForm(request.GET or None, prefix="c_freeze")
 
     # Handle tilt batch select
     tilt_form = TiltDataSelectForm(request.POST or None)
@@ -104,6 +116,8 @@ def index(request):
         'tilt_data': tilt_data,
         'tilt_batch_name': tilt_batch_name,
         'tilt_chart_html': tilt_chart_html,
+        'current_ferm_temp':current_ferm_temp,
+        'current_freeze_temp':current_freeze_temp,
     })
 
 @login_required
