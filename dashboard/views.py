@@ -17,7 +17,7 @@ from django.views.decorators.http import require_GET
 
 from .models import TemperatureData,FermentationData, GoogleSheetSourceData, ProfileDataSelect, FermentationDataTilt
 from .forms import DateForm, DateFilterForm, TempSetFermForm, TempSetFreezeForm, GoogleSheetURLForm, SelectGoogleSheetForm, UserRegistrationForm, TiltDataSelectForm , TempGetFreezeForm, TempGetFermForm
-from .scheduler import data_update
+
 
 import schedule
 import time
