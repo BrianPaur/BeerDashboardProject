@@ -389,10 +389,11 @@ def tilt_debug(request):
 def get_latest_tilt_data(request):
     latest = FermentationDataTilt.objects.order_by('-timestamp').first()
     if latest:
+        adjusted_time = latest.timestamp - timedelta(hours=5)
         return JsonResponse({
             'temperature': latest.temperature,
             'gravity': latest.gravity,
-            'timestamp': (latest.timestamp.strftime('%m-%d-%Y %I:%M:%S %p') - timedelta(hours=5)),
+            'timestamp': adjusted_time.strftime('%m-%d-%Y %I:%M:%S %p'),
             'name': latest.name
         })
     else:
