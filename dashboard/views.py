@@ -392,7 +392,7 @@ def get_latest_tilt_data(request):
         return JsonResponse({
             'temperature': latest.temperature,
             'gravity': latest.gravity,
-            'timestamp': latest.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'timestamp': latest.timestamp.strftime('%m-%d-%Y %I:%M:%S %p'),
             'name': latest.name
         })
     else:
