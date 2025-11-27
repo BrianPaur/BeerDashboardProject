@@ -17,7 +17,7 @@
     <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
   </head>
 
-  <body class="sb-nav-fixed sb-sidenav-toggled">
+  <body class="sb-nav-fixed">
     <!-- Top Navigation -->
     <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
       <a class="navbar-brand ps-3" href="{% url 'index' %}">Beer Dashboard</a>
@@ -44,7 +44,7 @@
       </ul>
     </nav>
 
-    <div id="layoutSidenav" class="sb-sidenav-toggled">
+    <div id="layoutSidenav">
       <!-- Sidebar -->
       <div id="layoutSidenav_nav">
         <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
@@ -249,6 +249,12 @@
       });
 
       document.addEventListener("DOMContentLoaded", function () {
+        // Set initial state based on screen size
+        if (window.innerWidth >= 992) { // lg breakpoint
+          document.body.classList.add("sb-sidenav-toggled");
+          document.getElementById("layoutSidenav").classList.add("sb-sidenav-toggled");
+        }
+
         document.getElementById("sidebarToggle").addEventListener("click", function (e) {
           e.preventDefault();
           document.body.classList.toggle("sb-sidenav-toggled");
@@ -280,13 +286,6 @@
         $('#df_json').DataTable();
       });
 
-      document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("sidebarToggle").addEventListener("click", function (e) {
-          e.preventDefault();
-          document.body.classList.toggle("sb-sidenav-toggled");
-        });
-      });
-
       function fetchLatestFreezeData() {
         fetch("/api/latest-freeze-ink-data/")
           .then(response => response.json())
@@ -308,13 +307,6 @@
     <script>
       $(document).ready(function () {
         $('#df_json').DataTable();
-      });
-
-      document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("sidebarToggle").addEventListener("click", function (e) {
-          e.preventDefault();
-          document.body.classList.toggle("sb-sidenav-toggled");
-        });
       });
 
       function fetchLatestFermData() {
