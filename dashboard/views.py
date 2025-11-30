@@ -390,11 +390,16 @@ def get_latest_tilt_data(request):
     latest = FermentationDataTilt.objects.order_by('-timestamp').first()
     if latest:
         adjusted_time = latest.timestamp - timedelta(hours=6)
+        original_gravity = FermentationData.objects.filter('specific_gravity').first()
+        specific_gravity = FermentationData.objects.filter('specific_gravity').last()
+        abv = ((original_gravity-specific_gravity)*1.3125)
+
         return JsonResponse({
             'temperature': latest.temperature,
             'gravity': latest.gravity,
             'timestamp': adjusted_time.strftime('%m-%d-%Y %I:%M:%S %p'),
-            'name': latest.name
+            'name': latest.name,
+            'abv': abv
         })
     else:
         return JsonResponse({'error': 'No data found'}, status=404)

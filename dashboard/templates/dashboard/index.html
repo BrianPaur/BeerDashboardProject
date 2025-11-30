@@ -93,6 +93,7 @@
                   <div class="card-header">Latest Gravity</div>
                   <div class="card-body">
                     <h5 class="card-title" id="latest-gravity">Loading...</h5>
+                    <p class="card-text" id="latest-abv"></p>
                     <p class="card-text" id="latest-gravity-name"></p>
                   </div>
                 </div>
@@ -273,6 +274,7 @@
               document.getElementById("latest-temp-time").textContent = `Updated at ${data.timestamp}`;
               document.getElementById("latest-gravity").textContent = data.gravity.toFixed(3);
               document.getElementById("latest-gravity-name").textContent = `Batch: ${data.name}`;
+              document.getElementById("latest-abv").textContent = `abv: ${data.abv}`;
             }
           })
           .catch(err => console.error("Failed to fetch tilt data:", err));
