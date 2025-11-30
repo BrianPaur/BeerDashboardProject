@@ -389,17 +389,30 @@ def tilt_debug(request):
 def get_latest_tilt_data(request):
     latest = FermentationDataTilt.objects.order_by('-timestamp').first()
     if latest:
-        adjusted_time = latest.timestamp - timedelta(hours=6)
-        original_gravity = FermentationData.objects.filter('specific_gravity').first()
-        specific_gravity = FermentationData.objects.filter('specific_gravity').last()
-        abv = ((original_gravity-specific_gravity)*1.3125)
+        from django.utils import timezone
+
+        # Use Django's timezone handling instead of manual adjustment
+        local_time = timezone.localtime(latest.timestamp)
+
+        # Get the batch name to find original and current gravity
+        batch_name = latest.name
+
+        # Get first (original) and last (current) gravity for this batch
+        batch_data = FermentationDataTilt.objects.filter(name=batch_name).order_by('timestamp')
+
+        abv = 0  # Default value
+        if batch_data.exists() and batch_data.count() > 1:
+            original_gravity = batch_data.first().gravity
+            current_gravity = latest.gravity
+            # ABV calculation: (OG - FG) * 131.25
+            abv = round((original_gravity - current_gravity) * 131.25, 2)
 
         return JsonResponse({
             'temperature': latest.temperature,
             'gravity': latest.gravity,
-            'timestamp': adjusted_time.strftime('%m-%d-%Y %I:%M:%S %p'),
+            'timestamp': local_time.strftime('%m-%d-%Y %I:%M:%S %p'),
             'name': latest.name,
-            'abv': abv
+            'abv': f'{abv}%'  # Format as percentage
         })
     else:
         return JsonResponse({'error': 'No data found'}, status=404)
