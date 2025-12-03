@@ -127,8 +127,12 @@
                 <div class="card text-white bg-info">
                   <div class="card-header">Metrics</div>
                   <div class="card-body">
-                    <h5 class="card-title" id="latest-abv">Loading...</h5>
-                    <p class="card-text" id="latest-temp-time"></p>
+                    <h5 class="card-title mb-1" id="latest-abv">Loading...</h5>
+                    <p class="card-text mb-0" id="latest-temp-time"></p>
+                    <p class="card-text mb-0" id="duration-days"></p>
+                    <p class="card-text mb-0" id="high"></p>
+                    <p class="card-text mb-0" id="low"></p>
+                    <p class="card-text mb-0" id="apparent-attenuation"></p>
                   </div>
                 </div>
               </div>
@@ -287,7 +291,11 @@
               document.getElementById("latest-temp-time").textContent = `Updated at ${data.timestamp}`;
               document.getElementById("latest-gravity").textContent = data.gravity.toFixed(3);
               document.getElementById("latest-gravity-name").textContent = `Batch: ${data.name}`;
-              document.getElementById("latest-abv").textContent = `abv: ${data.abv}`;
+              document.getElementById("latest-abv").textContent = `ABV: ${data.abv}`;
+              document.getElementById("duration-days").textContent = `Duration (DD:HH:MM): ${data.duration}`;
+              document.getElementById("high").textContent = `High: ${data.highest_gravity}`;
+              document.getElementById("low").textContent = `Low: ${data.lowest_gravity}`;
+              document.getElementById("apparent-attenuation").textContent = `Apparent Attenuation: ${data.apparent_attenuation}%`;
             }
           })
           .catch(err => console.error("Failed to fetch tilt data:", err));

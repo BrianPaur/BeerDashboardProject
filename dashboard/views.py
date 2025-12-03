@@ -13,6 +13,7 @@ from django.db import IntegrityError
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET
+from django.db.models import Min, Max
 
 
 from .models import TemperatureData,FermentationData, GoogleSheetSourceData, ProfileDataSelect, FermentationDataTilt
@@ -401,18 +402,37 @@ def get_latest_tilt_data(request):
         batch_data = FermentationDataTilt.objects.filter(name=batch_name).order_by('timestamp')
 
         abv = 0  # Default value
+        duration = "0 days"  # Default value
         if batch_data.exists() and batch_data.count() > 1:
             original_gravity = batch_data.first().gravity
             current_gravity = latest.gravity
+            highest_gravity = FermentationDataTilt.objects.aggregate(Max('gravity'))
+            lowest_gravity = FermentationDataTilt.objects.aggregate(Min('gravity'))
             # ABV calculation: (OG - FG) * 131.25
             abv = round((original_gravity - current_gravity) * 131.25, 2)
+
+            # Calculate duration
+            first_timestamp = timezone.localtime(batch_data.first().timestamp)
+            duration_delta = local_time - first_timestamp
+
+            # Format duration nicely (e.g., "5 days, 3 hours")
+            days = duration_delta.days
+            hours = duration_delta.seconds // 3600
+            minutes = (duration_delta.seconds % 3600) // 60
+            duration = f"{days}:{hours}:{minutes}"
+
+            apparent_attenuation = round((((original_gravity-current_gravity)/(original_gravity-1))*100),2)
 
         return JsonResponse({
             'temperature': latest.temperature,
             'gravity': latest.gravity,
             'timestamp': local_time.strftime('%m-%d-%Y %I:%M:%S %p'),
             'name': latest.name,
-            'abv': f'{abv}%'  # Format as percentage
+            'abv': f'{abv}%',
+            'duration': duration,
+            'highest_gravity': highest_gravity['gravity__max'],
+            'lowest_gravity': lowest_gravity['gravity__min'],
+            'apparent_attenuation':apparent_attenuation
         })
     else:
         return JsonResponse({'error': 'No data found'}, status=404)
