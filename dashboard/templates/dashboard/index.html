@@ -133,6 +133,7 @@
                     <p class="card-text mb-0" id="high"></p>
                     <p class="card-text mb-0" id="low"></p>
                     <p class="card-text mb-0" id="apparent-attenuation"></p>
+                    <p class="card-text mb-0" id="ferm-start-date"></p>
                     <p class="card-text mb-0" id="ferm-rate"></p>
                   </div>
                 </div>
@@ -360,6 +361,7 @@
               document.getElementById("ferm-rate").textContent = "Ferm Rate: No data";
             } else {
               document.getElementById("ferm-rate").textContent = `Ferm Rate: ${data.slope}`;
+              document.getElementById("ferm-start-date").textContent = `Ferm Start Date: ${data.fermentation_started_at}`;
             }
           })
           .catch(err => console.error("Failed to fetch slope data:", err));
