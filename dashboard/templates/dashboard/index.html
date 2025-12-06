@@ -133,6 +133,7 @@
                     <p class="card-text mb-0" id="high"></p>
                     <p class="card-text mb-0" id="low"></p>
                     <p class="card-text mb-0" id="apparent-attenuation"></p>
+                    <p class="card-text mb-0" id="ferm-rate"></p>
                   </div>
                 </div>
               </div>
@@ -349,6 +350,22 @@
 
       fetchLatestFermData();
       setInterval(fetchLatestTiltData, 300000); // 5 minutes
+    </script>
+    <script>
+      function calculate_slope() {
+        fetch("/api/calculate-slope/")  // Changed to correct endpoint
+          .then(response => response.json())
+          .then(data => {
+            if (data.error) {
+              document.getElementById("ferm-rate").textContent = "Ferm Rate: No data";
+            } else {
+              document.getElementById("ferm-rate").textContent = `Ferm Rate: ${data.slope}`;
+            }
+          })
+          .catch(err => console.error("Failed to fetch slope data:", err));
+      }
+      calculate_slope();
+      setInterval(calculate_slope, 300000); // 5 minutes
     </script>
   </body>
 </html>

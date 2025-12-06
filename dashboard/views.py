@@ -1,6 +1,7 @@
 from tempfile import template
 
 from django.http import HttpResponse
+from django.utils import timezone
 from django.utils.timezone import now
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template import loader
@@ -29,6 +30,7 @@ from datetime import datetime, timedelta
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import numpy as np
 
 import gspread
 import pandas as pd
@@ -390,7 +392,6 @@ def tilt_debug(request):
 def get_latest_tilt_data(request):
     latest = FermentationDataTilt.objects.order_by('-timestamp').first()
     if latest:
-        from django.utils import timezone
 
         # Use Django's timezone handling instead of manual adjustment
         local_time = timezone.localtime(latest.timestamp)
@@ -436,6 +437,82 @@ def get_latest_tilt_data(request):
         })
     else:
         return JsonResponse({'error': 'No data found'}, status=404)
+
+@require_GET
+@login_required
+def calculate_slope(request):
+    # Get the latest batch name
+    latest = FermentationDataTilt.objects.order_by('-timestamp').first()
+    if not latest:
+        return JsonResponse({'error': 'No data found'}, status=404)
+
+    batch_name = latest.name
+
+    # Get data for the current batch only
+    batch_data = FermentationDataTilt.objects.filter(name=batch_name).order_by('timestamp')
+
+    if batch_data.count() < 2:
+        return JsonResponse({'error': 'Not enough data points'}, status=404)
+
+    # Get all data
+    timestamps = list(batch_data.values_list('timestamp', flat=True))
+    gravities = list(batch_data.values_list('gravity', flat=True))
+
+    # Find when fermentation actually starts
+    # Looks for the first significant drop in gravity
+    fermentation_start_index = 0
+    gravity_drop_threshold = 0.004  # Adjust this threshold as needed
+
+    for i in range(1, len(gravities)):
+        # Check if gravity has dropped by the threshold from the maximum seen so far
+        max_gravity = max(gravities[:i + 1])
+        if max_gravity - gravities[i] >= gravity_drop_threshold:
+            fermentation_start_index = i
+            break
+
+    # If no significant drop detected, use all data
+    if fermentation_start_index == 0:
+        # Check if there's any drop at all
+        if gravities[0] - gravities[-1] < gravity_drop_threshold:
+            return JsonResponse({
+                'slope': 'Fermentation not started',
+                'slope_raw': 0
+            })
+
+    # Use data from fermentation start onwards
+    active_timestamps = timestamps[fermentation_start_index:]
+    active_gravities = gravities[fermentation_start_index:]
+
+    if len(active_timestamps) < 2:
+        return JsonResponse({'error': 'Not enough active fermentation data'}, status=404)
+
+    # Convert timestamps to days since fermentation start
+    first_time = active_timestamps[0]
+    x_data = np.array([(t - first_time).total_seconds() / 86400 for t in active_timestamps])  # 86400 seconds in a day
+    y_data = np.array(active_gravities)
+
+    # Calculate means
+    x_mean = np.mean(x_data)
+    y_mean = np.mean(y_data)
+
+    # Calculate slope
+    numerator = np.sum((x_data - x_mean) * (y_data - y_mean))
+    denominator = np.sum((x_data - x_mean) ** 2)
+
+    if denominator == 0:
+        return JsonResponse({'error': 'Cannot calculate slope'}, status=404)
+
+    slope = numerator / denominator
+
+    # Format slope nicely (gravity points per hour)
+    slope_formatted = f"{slope:.6f} points/day"
+
+    return JsonResponse({
+        'slope': slope_formatted,
+        'slope_raw': float(slope),
+        'fermentation_started_at': timezone.localtime(active_timestamps[0]).strftime('%m-%d-%Y %I:%M:%S %p'),
+        'data_points_used': len(active_gravities)
+    })
 
 @require_GET
 @login_required
