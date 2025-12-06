@@ -461,7 +461,7 @@ def calculate_slope(request):
     # Find when fermentation actually starts with sustained drop
     fermentation_start_index = 0
     gravity_drop_threshold = 0.002  # Minimum drop to consider
-    consecutive_drops = 3  # Number of consecutive readings showing decline
+    consecutive_drops = 5  # Number of consecutive readings showing decline
 
     # Look for sustained fermentation activity
     for i in range(len(gravities) - consecutive_drops):
