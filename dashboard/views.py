@@ -458,21 +458,33 @@ def calculate_slope(request):
     timestamps = list(batch_data.values_list('timestamp', flat=True))
     gravities = list(batch_data.values_list('gravity', flat=True))
 
-    # Find when fermentation actually starts
-    # Looks for the first significant drop in gravity
+    # Find when fermentation actually starts with sustained drop
     fermentation_start_index = 0
-    gravity_drop_threshold = 0.004  # Adjust this threshold as needed
+    gravity_drop_threshold = 0.002  # Minimum drop to consider
+    consecutive_drops = 3  # Number of consecutive readings showing decline
 
-    for i in range(1, len(gravities)):
-        # Check if gravity has dropped by the threshold from the maximum seen so far
-        max_gravity = max(gravities[:i + 1])
-        if max_gravity - gravities[i] >= gravity_drop_threshold:
+    # Look for sustained fermentation activity
+    for i in range(len(gravities) - consecutive_drops):
+        # Get the max gravity from the beginning up to this point
+        max_gravity_so_far = max(gravities[:i + 1])
+
+        # Check if we have consecutive drops from this point
+        is_sustained_drop = True
+        for j in range(consecutive_drops):
+            if i + j >= len(gravities):
+                is_sustained_drop = False
+                break
+            # Check if this reading and the next few are consistently lower
+            if gravities[i + j] >= max_gravity_so_far - gravity_drop_threshold:
+                is_sustained_drop = False
+                break
+
+        if is_sustained_drop:
             fermentation_start_index = i
             break
 
-    # If no significant drop detected, use all data
+    # If no significant sustained drop detected
     if fermentation_start_index == 0:
-        # Check if there's any drop at all
         if gravities[0] - gravities[-1] < gravity_drop_threshold:
             return JsonResponse({
                 'slope': 'Fermentation not started',
@@ -486,9 +498,9 @@ def calculate_slope(request):
     if len(active_timestamps) < 2:
         return JsonResponse({'error': 'Not enough active fermentation data'}, status=404)
 
-    # Convert timestamps to days since fermentation start
+    # Convert timestamps to DAYS since fermentation start
     first_time = active_timestamps[0]
-    x_data = np.array([(t - first_time).total_seconds() / 86400 for t in active_timestamps])  # 86400 seconds in a day
+    x_data = np.array([(t - first_time).total_seconds() / 86400 for t in active_timestamps])
     y_data = np.array(active_gravities)
 
     # Calculate means
@@ -504,8 +516,8 @@ def calculate_slope(request):
 
     slope = numerator / denominator
 
-    # Format slope nicely (gravity points per hour)
-    slope_formatted = f"{slope:.6f} points/day"
+    # Format slope nicely (gravity points per day)
+    slope_formatted = f"{slope:.4f} points/day"
 
     return JsonResponse({
         'slope': slope_formatted,
