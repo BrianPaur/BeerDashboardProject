@@ -101,7 +101,7 @@ def index(request):
                 title_text=f"Tilt Data for Batch: {tilt_batch_name}",
                 xaxis_title="Timestamp",
                 yaxis_title="Temperature (°F)",
-                legend=dict(x=0.70, y=0.99),
+                legend=dict(x=0.70, y=1.00),
                 height=400
             )
 
