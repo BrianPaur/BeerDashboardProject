@@ -17,11 +17,14 @@
     <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
   </head>
 
-  <body class="sb-nav-fixed">
+  <body class="sb-nav-fixed sb-sidenav-toggled">
     <!-- Top Navigation -->
     <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
       <a class="navbar-brand ps-3" href="{% url 'index' %}">Beer Dashboard</a>
       <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle"><i class="fas fa-bars"></i></button>
+
+      <!-- Add a spacer here -->
+      <div class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0"></div>
 
       <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
         <li class="nav-item dropdown">
@@ -268,13 +271,9 @@
         $('#df_json').DataTable();
       });
 
+      // Sidebar toggle - only need this ONCE
       document.addEventListener("DOMContentLoaded", function () {
-        // Set initial state based on screen size
-        if (window.innerWidth >= 992) { // lg breakpoint
-          document.body.classList.add("sb-sidenav-toggled");
-          document.getElementById("layoutSidenav").classList.add("sb-sidenav-toggled");
-        }
-
+        // Don't add any classes on load - sidebar starts closed by default
         document.getElementById("sidebarToggle").addEventListener("click", function (e) {
           e.preventDefault();
           document.body.classList.toggle("sb-sidenav-toggled");
@@ -304,12 +303,7 @@
       }
 
       fetchLatestTiltData();
-      setInterval(fetchLatestTiltData, 300000); // 5 minutes
-    </script>
-    <script>
-      $(document).ready(function () {
-        $('#df_json').DataTable();
-      });
+      setInterval(fetchLatestTiltData, 300000);
 
       function fetchLatestFreezeData() {
         fetch("/api/latest-freeze-ink-data/")
@@ -323,16 +317,11 @@
               document.getElementById("freeze-set-temp").textContent = `Target: ${data.freeze_set_temp} °F`;
             }
           })
-          .catch(err => console.error("Failed to fetch tilt data:", err));
+          .catch(err => console.error("Failed to fetch freeze data:", err));
       }
 
       fetchLatestFreezeData();
-      setInterval(fetchLatestTiltData, 300000); // 5 minutes
-    </script>
-    <script>
-      $(document).ready(function () {
-        $('#df_json').DataTable();
-      });
+      setInterval(fetchLatestFreezeData, 300000);
 
       function fetchLatestFermData() {
         fetch("/api/latest-ferm-ink-data/")
@@ -346,28 +335,29 @@
               document.getElementById("ferm-set-temp").textContent = `Target: ${data.ferm_set_temp} °F`;
             }
           })
-          .catch(err => console.error("Failed to fetch tilt data:", err));
+          .catch(err => console.error("Failed to fetch ferm data:", err));
       }
 
       fetchLatestFermData();
-      setInterval(fetchLatestTiltData, 300000); // 5 minutes
-    </script>
-    <script>
+      setInterval(fetchLatestFermData, 300000);
+
       function calculate_slope() {
-        fetch("/api/calculate-slope/")  // Changed to correct endpoint
+        fetch("/api/calculate-slope/")
           .then(response => response.json())
           .then(data => {
             if (data.error) {
               document.getElementById("ferm-rate").textContent = "Ferm Rate: No data";
+              document.getElementById("ferm-start-time").textContent = "";
             } else {
               document.getElementById("ferm-rate").textContent = `Ferm Rate: ${data.slope}`;
-              document.getElementById("ferm-start-date").textContent = `Ferm Start Date: ${data.fermentation_started_at}`;
+              document.getElementById("ferm-start-time").textContent = `Fermentation Started: ${data.fermentation_started_at}`;
             }
           })
           .catch(err => console.error("Failed to fetch slope data:", err));
       }
+
       calculate_slope();
-      setInterval(calculate_slope, 300000); // 5 minutes
+      setInterval(calculate_slope, 300000);
     </script>
   </body>
 </html>
