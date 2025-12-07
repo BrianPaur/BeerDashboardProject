@@ -486,7 +486,7 @@ def calculate_slope(request):
     # Find when fermentation stops (gravity stabilizes)
     fermentation_end_index = len(gravities) - 1  # Default to last reading
     stability_threshold = 0.001  # Gravity change threshold for "stable"
-    consecutive_stable = 5  # Number of consecutive stable readings
+    consecutive_stable = 10  # Number of consecutive stable readings
 
     # Look backwards from the end for sustained stability
     for i in range(len(gravities) - consecutive_stable, fermentation_start_index, -1):
