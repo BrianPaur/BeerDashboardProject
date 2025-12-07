@@ -546,12 +546,23 @@ def calculate_slope(request):
     fermentation_end_time = timezone.localtime(timestamps[fermentation_end_index]).strftime(
         '%m-%d-%Y %I:%M:%S %p') if fermentation_complete else "Still fermenting"
 
+    # Calculate total fermentation time
+    if fermentation_complete:
+        duration_delta = timestamps[fermentation_end_index] - active_timestamps[0]
+        days = duration_delta.days
+        hours = duration_delta.seconds // 3600
+        minutes = (duration_delta.seconds % 3600) // 60
+        fermentation_duration = f"{days}:{hours}:{minutes}"
+    else:
+        fermentation_duration = "Still fermenting"
+
     return JsonResponse({
         'slope': slope_formatted,
         'slope_raw': float(slope),
         'fermentation_started_at': timezone.localtime(active_timestamps[0]).strftime('%m-%d-%Y %I:%M:%S %p'),
         'fermentation_ended_at': fermentation_end_time,
         'fermentation_complete': fermentation_complete,
+        'fermentation_duration': fermentation_duration,
         'data_points_used': len(active_gravities)
     })
 @require_GET
