@@ -352,11 +352,11 @@
               document.getElementById("ferm-end-time").textContent = "";
             } else {
               document.getElementById("ferm-rate").textContent = `Ferm Rate: ${data.slope}`;
-              document.getElementById("ferm-start-time").textContent = `Fermentation Started: ${data.fermentation_started_at}`;
+              document.getElementById("ferm-start-time").textContent = `Ferm Started: ${data.fermentation_started_at}`;
 
               if (data.fermentation_complete) {
-                document.getElementById("ferm-end-time").textContent = `Fermentation Ended: ${data.fermentation_ended_at}`;
-                document.getElementById("ferm-duration").textContent = `Fermentation Duration (DD:HH:MM): ${data.fermentation_duration}`;
+                document.getElementById("ferm-end-time").textContent = `Ferm Ended: ${data.fermentation_ended_at}`;
+                document.getElementById("ferm-duration").textContent = `Ferm Duration (DD:HH:MM): ${data.fermentation_duration}`;
               } else {
                 document.getElementById("ferm-end-time").textContent = `Status: ${data.fermentation_ended_at}`;
               }
