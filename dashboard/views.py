@@ -483,7 +483,29 @@ def calculate_slope(request):
             fermentation_start_index = i
             break
 
-    # If no significant sustained drop detected
+    # Find when fermentation stops (gravity stabilizes)
+    fermentation_end_index = len(gravities) - 1  # Default to last reading
+    stability_threshold = 0.001  # Gravity change threshold for "stable"
+    consecutive_stable = 5  # Number of consecutive stable readings
+
+    # Look backwards from the end for sustained stability
+    for i in range(len(gravities) - consecutive_stable, fermentation_start_index, -1):
+        is_stable = True
+        # Check if the next consecutive_stable readings are all within threshold
+        for j in range(consecutive_stable - 1):
+            if i + j + 1 >= len(gravities):
+                is_stable = False
+                break
+            gravity_change = abs(gravities[i + j] - gravities[i + j + 1])
+            if gravity_change > stability_threshold:
+                is_stable = False
+                break
+
+        if is_stable:
+            fermentation_end_index = i
+            break
+
+    # Check if fermentation has started
     if fermentation_start_index == 0:
         if gravities[0] - gravities[-1] < gravity_drop_threshold:
             return JsonResponse({
@@ -491,9 +513,9 @@ def calculate_slope(request):
                 'slope_raw': 0
             })
 
-    # Use data from fermentation start onwards
-    active_timestamps = timestamps[fermentation_start_index:]
-    active_gravities = gravities[fermentation_start_index:]
+    # Use data from fermentation start to end
+    active_timestamps = timestamps[fermentation_start_index:fermentation_end_index + 1]
+    active_gravities = gravities[fermentation_start_index:fermentation_end_index + 1]
 
     if len(active_timestamps) < 2:
         return JsonResponse({'error': 'Not enough active fermentation data'}, status=404)
@@ -519,13 +541,19 @@ def calculate_slope(request):
     # Format slope nicely (gravity points per day)
     slope_formatted = f"{slope:.4f} points/day"
 
+    # Check if fermentation is complete (end_index is not the last reading)
+    fermentation_complete = fermentation_end_index < len(gravities) - 1
+    fermentation_end_time = timezone.localtime(timestamps[fermentation_end_index]).strftime(
+        '%m-%d-%Y %I:%M:%S %p') if fermentation_complete else "Still fermenting"
+
     return JsonResponse({
         'slope': slope_formatted,
         'slope_raw': float(slope),
         'fermentation_started_at': timezone.localtime(active_timestamps[0]).strftime('%m-%d-%Y %I:%M:%S %p'),
+        'fermentation_ended_at': fermentation_end_time,
+        'fermentation_complete': fermentation_complete,
         'data_points_used': len(active_gravities)
     })
-
 @require_GET
 @login_required
 def get_inkbird_freeze_data(request):

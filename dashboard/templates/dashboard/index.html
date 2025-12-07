@@ -138,6 +138,7 @@
                     <p class="card-text mb-0" id="apparent-attenuation"></p>
                     <p class="card-text mb-0" id="ferm-start-time"></p>
                     <p class="card-text mb-0" id="ferm-rate"></p>
+                    <p class="card-text mb-0" id="ferm-end-time"></p>
                   </div>
                 </div>
               </div>
@@ -347,16 +348,23 @@
             if (data.error) {
               document.getElementById("ferm-rate").textContent = "Ferm Rate: No data";
               document.getElementById("ferm-start-time").textContent = "";
+              document.getElementById("ferm-end-time").textContent = "";
             } else {
               document.getElementById("ferm-rate").textContent = `Ferm Rate: ${data.slope}`;
               document.getElementById("ferm-start-time").textContent = `Fermentation Started: ${data.fermentation_started_at}`;
+
+              if (data.fermentation_complete) {
+                document.getElementById("ferm-end-time").textContent = `Fermentation Ended: ${data.fermentation_ended_at}`;
+              } else {
+                document.getElementById("ferm-end-time").textContent = `Status: ${data.fermentation_ended_at}`;
+              }
             }
           })
           .catch(err => console.error("Failed to fetch slope data:", err));
       }
 
       calculate_slope();
-      setInterval(calculate_slope, 300000);
+      setInterval(calculate_slope, 300000); // 5 minutes
     </script>
   </body>
 </html>
