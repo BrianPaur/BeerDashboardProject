@@ -101,13 +101,23 @@ def index(request):
                 title_text=f"Tilt Data for Batch: {tilt_batch_name}",
                 xaxis_title="Timestamp",
                 yaxis_title="Temperature (°F)",
-                legend=dict(x=0.70, y=1.00),
-                height=400
+                legend=dict(x=0.01, y=0.99),
+                height=400,
+                autosize=True,
+                margin=dict(l=60, r=60, t=80, b=60)
             )
 
             fig.update_yaxes(title_text="Gravity", secondary_y=True)
 
-            tilt_chart_html = fig.to_html(full_html=False)
+            tilt_chart_html = fig.to_html(
+                full_html=False,
+                config={
+                    'responsive': True,
+                    'displayModeBar': True,
+                    'displaylogo': False
+                },
+                div_id='tilt-chart'  # Give it an ID
+            )
 
     # Render the page
     return render(request, 'dashboard/index.html', {
@@ -565,6 +575,7 @@ def calculate_slope(request):
         'fermentation_duration': fermentation_duration,
         'data_points_used': len(active_gravities)
     })
+
 @require_GET
 @login_required
 def get_inkbird_freeze_data(request):

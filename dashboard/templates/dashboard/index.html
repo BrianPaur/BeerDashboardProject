@@ -75,91 +75,152 @@
       <div id="layoutSidenav_content">
         <main>
           <div class="container-fluid px-4">
-            <h1 class="mt-4">Dashboard</h1>
-<!--            <ol class="breadcrumb mb-4">-->
-<!--              <li class="breadcrumb-item active">Beer Dashboard</li>-->
-<!--            </ol>-->
+            <h1 class="mt-4">Fermentation Dashboard</h1>
 
-            <!-- Tilt AJAX Cards -->
-            <div class="row mb-4 gx-4">
-              <div class="col-lg-6 col-12">
-                <div class="card text-white bg-info">
-                  <div class="card-header">Latest Tilt Temperature</div>
-                  <div class="card-body">
-                    <h5 class="card-title" id="latest-temp">Loading...</h5>
-                    <p class="card-text" id="latest-temp-time"></p>
-                  </div>
-                </div>
-              </div>
-              <div class="col-lg-6 col-12">
-                <div class="card text-white bg-secondary">
-                  <div class="card-header">Latest Gravity</div>
-                  <div class="card-body">
-                    <h5 class="card-title" id="latest-gravity">Loading...</h5>
-                    <p class="card-text" id="latest-gravity-name"></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Inkbird data -->
-            <div class="row mb-4 gx-4">
-              <div class="col-lg-6 col-12">
-                <div class="card text-white bg-info">
-                  <div class="card-header">Current Ferm Temp</div>
-                  <div class="card-body">
-                    <h5 class="card-title" id="ferm-current-temp">Loading...</h5>
-                    <p class="card-text" id="ferm-set-temp"></p>
-                  </div>
-                </div>
-              </div>
-              <div class="col-lg-6 col-12">
-                <div class="card text-white bg-secondary">
-                  <div class="card-header">Current Freeze Temp</div>
-                  <div class="card-body">
-                    <h5 class="card-title" id="freeze-current-temp">Loading...</h5>
-                    <p class="card-text" id="freeze-set-temp"></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Brewing Metrics -->
-            <div class="row mb-4 gx-4">
+            <!-- SECTION 1: Current Status (Most Important) -->
+            <div class="row mb-4">
               <div class="col-12">
-                <div class="card text-white bg-info">
-                  <div class="card-header">Metrics</div>
+                <h3 class="mb-3">Current Batch Status</h3>
+              </div>
+            </div>
+
+            <div class="row mb-4 gx-4">
+              <div class="col-lg-3 col-md-6 col-12 mb-3 mb-lg-0">
+                <div class="card text-white bg-primary h-100">
+                  <div class="card-header">Current Gravity</div>
                   <div class="card-body">
-                    <h5 class="card-title mb-1" id="latest-abv">Loading...</h5>
-                    <p class="card-text mb-0" id="latest-temp-time"></p>
-                    <p class="card-text mb-0" id="duration-days"></p>
-                    <p class="card-text mb-0" id="high"></p>
-                    <p class="card-text mb-0" id="low"></p>
-                    <p class="card-text mb-0" id="apparent-attenuation"></p>
-                    <p class="card-text mb-0" id="ferm-rate"></p>
-                    <p class="card-text mb-0" id="ferm-start-time"></p>
-                    <p class="card-text mb-0" id="ferm-end-time"></p>
-                    <p class="card-text mb-0" id="ferm-duration"></p>
+                    <h3 class="card-title mb-0" id="latest-gravity">Loading...</h3>
+                    <p class="card-text small mb-0" id="latest-gravity-name"></p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-lg-3 col-md-6 col-12 mb-3 mb-lg-0">
+                <div class="card text-white bg-success h-100">
+                  <div class="card-header">ABV</div>
+                  <div class="card-body">
+                    <h3 class="card-title mb-0" id="latest-abv">Loading...</h3>
+                    <p class="card-text small mb-0" id="apparent-attenuation"></p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-lg-3 col-md-6 col-12 mb-3 mb-md-0">
+                <div class="card text-white bg-warning h-100">
+                  <div class="card-header">Temperature</div>
+                  <div class="card-body">
+                    <h3 class="card-title mb-0" id="latest-temp">Loading...</h3>
+                    <p class="card-text small mb-0" id="latest-temp-time"></p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-lg-3 col-md-6 col-12">
+                <div class="card text-white bg-info h-100">
+                  <div class="card-header">Duration</div>
+                  <div class="card-body">
+                    <h3 class="card-title mb-0" id="duration-days">Loading...</h3>
+                    <p class="card-text small mb-0" id="ferm-rate"></p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Set Temp Controls -->
+            <!-- SECTION 2: Fermentation Details -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h3 class="mb-3">Fermentation Progress</h3>
+              </div>
+            </div>
+
             <div class="row mb-4 gx-4">
+              <div class="col-lg-6 col-12 mb-3 mb-lg-0">
+                <div class="card h-100">
+                  <div class="card-header bg-light">
+                    <i class="fas fa-chart-line me-2"></i>Fermentation Timeline
+                  </div>
+                  <div class="card-body">
+                    <div class="mb-2">
+                      <strong>Started:</strong>
+                      <span id="ferm-start-time" class="text-muted">Loading...</span>
+                    </div>
+                    <div class="mb-2">
+                      <strong>Status:</strong>
+                      <span id="ferm-end-time" class="text-muted">Loading...</span>
+                    </div>
+                    <div class="mb-2">
+                      <strong>Duration:</strong>
+                      <span id="ferm-duration" class="text-muted">Loading...</span>
+                    </div>
+                    <div>
+                      <strong>Rate:</strong>
+                      <span id="ferm-rate-detail" class="text-muted">Loading...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div class="col-lg-6 col-12">
                 <div class="card h-100">
-                  <div class="card-header">Set Ferm Temp</div>
+                  <div class="card-header bg-light">
+                    <i class="fas fa-flask me-2"></i>Gravity Range
+                  </div>
                   <div class="card-body">
+                    <div class="mb-2">
+                      <strong>Original Gravity:</strong>
+                      <span id="high" class="text-muted">Loading...</span>
+                    </div>
+                    <div class="mb-2">
+                      <strong>Current Gravity:</strong>
+                      <span id="current-gravity" class="text-muted">Loading...</span>
+                    </div>
+                    <div>
+                      <strong>Final Gravity:</strong>
+                      <span id="low" class="text-muted">Loading...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 3: Temperature Controls -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h3 class="mb-3">Temperature Control</h3>
+              </div>
+            </div>
+
+            <div class="row mb-4 gx-4">
+              <div class="col-lg-6 col-12 mb-3 mb-lg-0">
+                <div class="card h-100">
+                  <div class="card-header bg-light">
+                    <i class="fas fa-thermometer-half me-2"></i>Fermentation Chamber
+                  </div>
+                  <div class="card-body">
+                    <div class="row mb-3">
+                      <div class="col-6">
+                        <div class="text-center p-3 bg-light rounded">
+                          <div class="text-muted small">Current</div>
+                          <h4 id="ferm-current-temp" class="mb-0">--°F</h4>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="text-center p-3 bg-light rounded">
+                          <div class="text-muted small">Target</div>
+                          <h4 id="ferm-set-temp" class="mb-0">--°F</h4>
+                        </div>
+                      </div>
+                    </div>
                     <form method="POST">
                       {% csrf_token %}
                       {{ ferm_form.management_form }}
-                      <div class="form-group mb-2">
-                        {{ ferm_form.temp.label_tag }}
+                      <div class="input-group">
                         {{ ferm_form.temp|add_class:"form-control" }}
+                        <button type="submit" name="ferm-temp-submit" class="btn btn-primary">
+                          <i class="fas fa-check me-1"></i>Set
+                        </button>
                       </div>
-                      <button type="submit" name="ferm-temp-submit" class="btn btn-primary">Set Ferm Temp</button>
-                      {% if ferm_feedback %}<p class="mt-2 text-success">{{ ferm_feedback }}</p>{% endif %}
+                      {% if ferm_feedback %}<div class="alert alert-success mt-2 mb-0 py-1">{{ ferm_feedback }}</div>{% endif %}
                     </form>
                   </div>
                 </div>
@@ -167,56 +228,88 @@
 
               <div class="col-lg-6 col-12">
                 <div class="card h-100">
-                  <div class="card-header">Set Freeze Temp</div>
+                  <div class="card-header bg-light">
+                    <i class="fas fa-snowflake me-2"></i>Keezer
+                  </div>
                   <div class="card-body">
+                    <div class="row mb-3">
+                      <div class="col-6">
+                        <div class="text-center p-3 bg-light rounded">
+                          <div class="text-muted small">Current</div>
+                          <h4 id="freeze-current-temp" class="mb-0">--°F</h4>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="text-center p-3 bg-light rounded">
+                          <div class="text-muted small">Target</div>
+                          <h4 id="freeze-set-temp" class="mb-0">--°F</h4>
+                        </div>
+                      </div>
+                    </div>
                     <form method="POST">
                       {% csrf_token %}
                       {{ freeze_form.management_form }}
-                      <div class="form-group mb-2">
-                        {{ freeze_form.temp.label_tag }}
+                      <div class="input-group">
                         {{ freeze_form.temp|add_class:"form-control" }}
+                        <button type="submit" name="freeze-temp-submit" class="btn btn-primary">
+                          <i class="fas fa-check me-1"></i>Set
+                        </button>
                       </div>
-                      <button type="submit" name="freeze-temp-submit" class="btn btn-primary">Set Freeze Temp</button>
-                      {% if freeze_feedback %}<p class="mt-2 text-success">{{ freeze_feedback }}</p>{% endif %}
+                      {% if freeze_feedback %}<div class="alert alert-success mt-2 mb-0 py-1">{{ freeze_feedback }}</div>{% endif %}
                     </form>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Tilt Batch Selector -->
+            <!-- SECTION 4: Batch Selector & Graph -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h3 class="mb-3">Historical Data</h3>
+              </div>
+            </div>
+
             <div class="card mb-4">
-              <div class="card-header"><h5>Select a Tilt Batch</h5></div>
+              <div class="card-header bg-light">
+                <i class="fas fa-beer me-2"></i>Select Batch to View
+              </div>
               <div class="card-body">
-                <form method="POST">
+                <form method="POST" class="row g-3">
                   {% csrf_token %}
-                  <div class="form-group mb-3">
-                    {{ tilt_form.name.label_tag }}
+                  <div class="col-md-8">
                     {{ tilt_form.name|add_class:"form-control" }}
                   </div>
-                  <button type="submit" class="btn btn-primary">View Batch</button>
+                  <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">
+                      <i class="fas fa-search me-1"></i>View Batch
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>
 
             {% if tilt_chart_html %}
-            <!-- Tilt Chart -->
             <div class="card mb-4">
-              <div class="card-header"><h5>Fermentation Graph for: {{ tilt_batch_name }}</h5></div>
-              <div class="card-body">
-                <div class="chart-container">{{ tilt_chart_html|safe }}</div>
+              <div class="card-header bg-light">
+                <i class="fas fa-chart-area me-2"></i>Fermentation Graph: {{ tilt_batch_name }}
+              </div>
+              <div class="card-body p-2">
+                <div class="chart-container" style="width: 100%; overflow: hidden;">
+                  {{ tilt_chart_html|safe }}
+                </div>
               </div>
             </div>
             {% endif %}
 
             {% if tilt_data %}
-            <!-- Tilt Data Table -->
             <div class="card mb-4">
-              <div class="card-header"><h5>Tilt Data Table for: {{ tilt_batch_name }}</h5></div>
+              <div class="card-header bg-light">
+                <i class="fas fa-table me-2"></i>Data Table: {{ tilt_batch_name }}
+              </div>
               <div class="card-body">
                 <div class="table-responsive">
-                  <table class="table table-striped table-bordered table-hover">
-                    <thead class="thead-dark">
+                  <table class="table table-sm table-hover">
+                    <thead class="table-light">
                       <tr>
                         <th>Timestamp</th>
                         <th>Temperature (°F)</th>
@@ -231,7 +324,7 @@
                         <td>{{ entry.timestamp }}</td>
                         <td>{{ entry.temperature }}</td>
                         <td>{{ entry.gravity }}</td>
-                        <td>{{ entry.color }}</td>
+                        <td><span class="badge" style="background-color: {{ entry.color }}">{{ entry.color }}</span></td>
                         <td>{{ entry.comment }}</td>
                       </tr>
                       {% endfor %}
@@ -243,6 +336,9 @@
             {% endif %}
           </div>
         </main>
+
+        <!-- Keep your existing footer -->
+      </div>
 
         <!-- Footer -->
         <footer class="py-4 bg-light mt-auto">
@@ -289,15 +385,16 @@
               document.getElementById("latest-temp").textContent = "No data";
               document.getElementById("latest-gravity").textContent = "No data";
             } else {
-              document.getElementById("latest-temp").textContent = `${data.temperature} °F`;
-              document.getElementById("latest-temp-time").textContent = `Updated at ${data.timestamp}`;
+              document.getElementById("latest-temp").textContent = `${data.temperature}°F`;
+              document.getElementById("latest-temp-time").textContent = `Updated ${data.timestamp}`;
               document.getElementById("latest-gravity").textContent = data.gravity.toFixed(3);
-              document.getElementById("latest-gravity-name").textContent = `Batch: ${data.name}`;
-              document.getElementById("latest-abv").textContent = `ABV: ${data.abv}`;
-              document.getElementById("duration-days").textContent = `Duration (DD:HH:MM): ${data.duration}`;
-              document.getElementById("high").textContent = `High: ${data.highest_gravity}`;
-              document.getElementById("low").textContent = `Low: ${data.lowest_gravity}`;
-              document.getElementById("apparent-attenuation").textContent = `Apparent Attenuation: ${data.apparent_attenuation}%`;
+              document.getElementById("current-gravity").textContent = data.gravity.toFixed(3);
+              document.getElementById("latest-gravity-name").textContent = data.name;
+              document.getElementById("latest-abv").textContent = `${data.abv}`;
+              document.getElementById("duration-days").textContent = `${data.duration}`;
+              document.getElementById("high").textContent = data.highest_gravity;
+              document.getElementById("low").textContent = data.lowest_gravity;
+              document.getElementById("apparent-attenuation").textContent = `${data.apparent_attenuation}% Attenuation`;
             }
           })
           .catch(err => console.error("Failed to fetch tilt data:", err));
@@ -347,18 +444,22 @@
           .then(response => response.json())
           .then(data => {
             if (data.error) {
-              document.getElementById("ferm-rate").textContent = "Ferm Rate: No data";
-              document.getElementById("ferm-start-time").textContent = "";
-              document.getElementById("ferm-end-time").textContent = "";
+              document.getElementById("ferm-rate").textContent = "No data";
+              document.getElementById("ferm-start-time").textContent = "Loading...";
+              document.getElementById("ferm-end-time").textContent = "Loading...";
+              document.getElementById("ferm-duration").textContent = "Loading...";
+              document.getElementById("ferm-rate-detail").textContent = "Loading...";
             } else {
-              document.getElementById("ferm-rate").textContent = `Ferm Rate: ${data.slope}`;
-              document.getElementById("ferm-start-time").textContent = `Ferm Started: ${data.fermentation_started_at}`;
+              document.getElementById("ferm-rate").textContent = data.slope;
+              document.getElementById("ferm-rate-detail").textContent = data.slope;
+              document.getElementById("ferm-start-time").textContent = data.fermentation_started_at;
 
               if (data.fermentation_complete) {
-                document.getElementById("ferm-end-time").textContent = `Ferm Ended: ${data.fermentation_ended_at}`;
-                document.getElementById("ferm-duration").textContent = `Ferm Duration (DD:HH:MM): ${data.fermentation_duration}`;
+                document.getElementById("ferm-end-time").textContent = `Complete (${data.fermentation_ended_at})`;
+                document.getElementById("ferm-duration").textContent = data.fermentation_duration;
               } else {
-                document.getElementById("ferm-end-time").textContent = `Status: ${data.fermentation_ended_at}`;
+                document.getElementById("ferm-end-time").textContent = data.fermentation_ended_at;
+                document.getElementById("ferm-duration").textContent = "In Progress";
               }
             }
           })
@@ -367,6 +468,29 @@
 
       calculate_slope();
       setInterval(calculate_slope, 300000); // 5 minutes
+
+      // Add this to your existing script section
+      document.addEventListener('DOMContentLoaded', function() {
+          // Observer to detect when chart is added to DOM
+          const observer = new MutationObserver(function(mutations) {
+              mutations.forEach(function(mutation) {
+                  if (mutation.addedNodes.length) {
+                      const plotlyDiv = document.querySelector('.js-plotly-plot');
+                      if (plotlyDiv && window.Plotly) {
+                          setTimeout(function() {
+                              window.Plotly.Plots.resize(plotlyDiv);
+                          }, 50);
+                      }
+                  }
+              });
+          });
+
+          const container = document.querySelector('.container-fluid');
+          if (container) {
+              observer.observe(container, { childList: true, subtree: true });
+          }
+      });
+
     </script>
   </body>
 </html>
