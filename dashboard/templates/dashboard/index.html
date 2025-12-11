@@ -6,138 +6,448 @@
 <html lang="en-US">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <meta name="description" content="" />
-    <meta name="author" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Beer Dashboard</title>
-
-    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Icons -->
     <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+    <!-- Your styles -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
+    <style>
+      /* Balanced color palette - easy on the eyes */
+      :root {
+        --primary-blue: #3b82f6;
+        --primary-blue-dark: #2563eb;
+        --success-green: #10b981;
+        --success-green-dark: #059669;
+        --warning-orange: #f59e0b;
+        --warning-orange-dark: #d97706;
+        --info-cyan: #06b6d4;
+        --info-cyan-dark: #0891b2;
+        --slate-50: #f8fafc;
+        --slate-100: #f1f5f9;
+        --slate-200: #e2e8f0;
+        --slate-300: #cbd5e1;
+        --slate-500: #64748b;
+        --slate-600: #475569;
+        --slate-700: #334155;
+        --slate-800: #1e293b;
+        --slate-900: #0f172a;
+        --bg-primary: #f0f4f8;
+        --card-bg: #ffffff;
+      }
+
+      body {
+        background-color: var(--bg-primary);
+      }
+
+      /* Metric cards with clean colors */
+      .metric-card {
+        border: none;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .metric-card.bg-primary {
+        background: var(--primary-blue) !important;
+      }
+
+      .metric-card.bg-success {
+        background: var(--success-green) !important;
+      }
+
+      .metric-card.bg-warning {
+        background: var(--warning-orange) !important;
+      }
+
+      .metric-card.bg-info {
+        background: var(--info-cyan) !important;
+      }
+
+      .metric-card .card-header {
+        background: rgba(0, 0, 0, 0.1);
+        border: none;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .metric-card .card-body h3 {
+        font-size: 2.25rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+      }
+
+      .metric-card .card-body p {
+        font-size: 0.8rem;
+        opacity: 0.85;
+        margin-bottom: 0;
+      }
+
+      /* Regular cards */
+      .card {
+        border: 1px solid var(--slate-200);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+        transition: box-shadow 0.2s;
+        background: var(--card-bg);
+      }
+
+      .card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .card-header {
+        background: var(--slate-700);
+        color: white;
+        border-bottom: none;
+        font-weight: 600;
+        padding: 1rem 1.25rem;
+        font-size: 0.9rem;
+      }
+
+      /* Temperature display boxes */
+      .temp-box {
+        background: var(--slate-100);
+        border: 1px solid var(--slate-300);
+        border-radius: 8px;
+        padding: 1.25rem;
+        text-align: center;
+      }
+
+      .temp-box .small {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        color: var(--slate-600);
+      }
+
+      .temp-box h4 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0.25rem 0 0 0;
+        color: var(--slate-900);
+      }
+
+      /* Buttons */
+      .btn-primary {
+        background: var(--primary-blue);
+        border: none;
+        font-weight: 600;
+        padding: 0.5rem 1.5rem;
+        transition: all 0.2s;
+      }
+
+      .btn-primary:hover {
+        background: var(--primary-blue-dark);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+      }
+
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+
+      /* Chart container */
+      .chart-container {
+        width: 100%;
+        position: relative;
+      }
+
+      .chart-container .js-plotly-plot,
+      .chart-container .plotly {
+        width: 100% !important;
+      }
+
+      /* Navbar */
+      .sb-topnav {
+        background: var(--slate-800);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .navbar-brand {
+        color: white !important;
+        font-size: 1.1rem;
+      }
+
+      .navbar-brand i {
+        color: var(--warning-orange);
+      }
+
+      .sb-topnav .btn {
+        color: white !important;
+      }
+
+      .sb-topnav .nav-link {
+        color: white !important;
+      }
+
+      .sb-topnav .dropdown-menu {
+        border: 1px solid var(--slate-200);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Sidebar */
+      .sb-sidenav-dark {
+        background: var(--slate-800);
+        border-right: 1px solid var(--slate-700);
+      }
+
+      .sb-sidenav-dark .sb-sidenav-menu {
+        background: var(--slate-800);
+      }
+
+      .sb-sidenav-dark .nav-link {
+        color: var(--slate-300);
+      }
+
+      .sb-sidenav-dark .nav-link:hover {
+        color: white;
+        background: var(--slate-700);
+      }
+
+      .sb-sidenav-dark .sb-sidenav-menu-heading {
+        color: var(--slate-500);
+      }
+
+      .sb-sidenav-footer {
+        background: var(--slate-900);
+        color: white !important;
+      }
+
+      .sb-sidenav-footer i {
+        color: var(--primary-blue);
+      }
+
+      /* Headings */
+      h1, h4 {
+        color: var(--slate-900);
+      }
+
+      h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+      }
+
+      h4 {
+        font-weight: 600;
+      }
+
+      .text-muted {
+        color: var(--slate-600) !important;
+      }
+
+      /* Table styling */
+      .table {
+        color: var(--slate-800);
+      }
+
+      .table-light {
+        background: var(--slate-100);
+        border-bottom: 2px solid var(--slate-300);
+      }
+
+      .table-light th {
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: var(--slate-800);
+      }
+
+      .table-hover tbody tr:hover {
+        background-color: var(--slate-100);
+      }
+
+      /* Alert */
+      .alert-success {
+        background-color: #d1fae5;
+        border: 1px solid var(--success-green);
+        color: var(--success-green-dark);
+      }
+
+      /* Form controls */
+      .form-control:focus {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.15);
+      }
+
+      /* Badge */
+      .badge {
+        font-weight: 600;
+        padding: 0.35rem 0.65rem;
+      }
+
+      /* Footer */
+      footer {
+        background: var(--slate-200);
+        border-top: 1px solid var(--slate-300);
+      }
+
+      footer a {
+        color: var(--slate-700);
+      }
+
+      footer a:hover {
+        color: var(--slate-900);
+      }
+
+      /* Card body text */
+      .card-body strong {
+        color: var(--slate-700);
+      }
+    </style>
   </head>
 
   <body class="sb-nav-fixed sb-sidenav-toggled">
-    <!-- Top Navigation -->
-    <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
-      <a class="navbar-brand ps-3" href="{% url 'index' %}">Beer Dashboard</a>
-      <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle"><i class="fas fa-bars"></i></button>
 
-      <!-- Add a spacer here -->
-      <div class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0"></div>
+    <!-- NAVBAR -->
+    <nav class="sb-topnav navbar navbar-expand navbar-dark">
+      <a class="navbar-brand ps-3 fw-bold" href="{% url 'index' %}">
+        <i class="fas fa-beer me-2"></i>Beer Dashboard
+      </a>
 
-      <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
+      <button class="btn btn-sm text-white ms-3" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <ul class="navbar-nav ms-auto me-3">
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-user fa-fw"></i>
+          <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+            <i class="fas fa-user-circle fa-lg"></i>
           </a>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+          <ul class="dropdown-menu dropdown-menu-end">
             {% if user.is_authenticated %}
             <li>
               <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
-                <button type="submit" class="dropdown-item">Logout</button>
+                <button type="submit" class="dropdown-item">
+                  <i class="fas fa-sign-out-alt me-2"></i>Logout
+                </button>
               </form>
             </li>
             {% else %}
-            <li><a class="dropdown-item" href="{% url 'login' %}">Login</a></li>
+            <li>
+              <a class="dropdown-item" href="{% url 'login' %}">
+                <i class="fas fa-sign-in-alt me-2"></i>Login
+              </a>
+            </li>
             {% endif %}
           </ul>
         </li>
       </ul>
     </nav>
 
+
     <div id="layoutSidenav">
-      <!-- Sidebar -->
+
+      <!-- SIDEBAR -->
       <div id="layoutSidenav_nav">
-        <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
+        <nav class="sb-sidenav accordion sb-sidenav-dark">
           <div class="sb-sidenav-menu">
             <div class="nav">
-              <div class="sb-sidenav-menu-heading">Core</div>
+              <div class="sb-sidenav-menu-heading small text-muted">Navigation</div>
+
               <a class="nav-link" href="update_google_sheet_url">
-                <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
+                <i class="fas fa-database me-2"></i>
                 Google Sheet Manager
               </a>
+
               <a class="nav-link" href="google_sheets_dashboard">
-                <div class="sb-nav-link-icon"><i class="fas fa-tachometer-alt"></i></div>
-                Google Sheets Dashboard
+                <i class="fas fa-chart-line me-2"></i>
+                Sheets Dashboard
               </a>
             </div>
           </div>
-          <div class="sb-sidenav-footer">
-            <div class="small">Logged in as:</div>
-            {{ user.username|default:"Guest" }}
+
+          <div class="sb-sidenav-footer text-white small">
+            <i class="fas fa-user me-2"></i>{{ user.username|default:"Guest" }}
           </div>
         </nav>
       </div>
 
-      <!-- Main Content -->
+
+      <!-- MAIN CONTENT -->
       <div id="layoutSidenav_content">
         <main>
           <div class="container-fluid px-4">
-            <h1 class="mt-4">Fermentation Dashboard</h1>
 
-            <!-- SECTION 1: Current Status (Most Important) -->
-            <div class="row mb-4">
-              <div class="col-12">
-                <h3 class="mb-3">Current Batch Status</h3>
-              </div>
-            </div>
+            <h1 class="mt-4 fw-bold">Fermentation Dashboard</h1>
+            <p class="text-muted mb-4">Monitor active fermentation and review batch history</p>
 
-            <div class="row mb-4 gx-4">
-              <div class="col-lg-3 col-md-6 col-12 mb-3 mb-lg-0">
-                <div class="card text-white bg-primary h-100">
+
+            <!-- CURRENT STATUS -->
+            <h4 class="fw-semibold mb-3 mt-4">
+              <i class="fas fa-tachometer-alt me-2"></i>Current Batch Status
+            </h4>
+
+            <div class="row g-4 mb-4">
+
+              <div class="col-lg-3 col-md-6">
+                <div class="card metric-card text-white bg-primary">
                   <div class="card-header">Current Gravity</div>
                   <div class="card-body">
-                    <h3 class="card-title mb-0" id="latest-gravity">Loading...</h3>
-                    <p class="card-text small mb-0" id="latest-gravity-name"></p>
+                    <h3 id="latest-gravity">--</h3>
+                    <p class="small" id="latest-gravity-name">Loading...</p>
                   </div>
                 </div>
               </div>
 
-              <div class="col-lg-3 col-md-6 col-12 mb-3 mb-lg-0">
-                <div class="card text-white bg-success h-100">
+              <div class="col-lg-3 col-md-6">
+                <div class="card metric-card text-white bg-success">
                   <div class="card-header">ABV</div>
                   <div class="card-body">
-                    <h3 class="card-title mb-0" id="latest-abv">Loading...</h3>
-                    <p class="card-text small mb-0" id="apparent-attenuation"></p>
+                    <h3 id="latest-abv">--</h3>
+                    <p class="small" id="apparent-attenuation">Loading...</p>
                   </div>
                 </div>
               </div>
 
-              <div class="col-lg-3 col-md-6 col-12 mb-3 mb-md-0">
-                <div class="card text-white bg-warning h-100">
+              <div class="col-lg-3 col-md-6">
+                <div class="card metric-card text-white bg-warning">
                   <div class="card-header">Temperature</div>
                   <div class="card-body">
-                    <h3 class="card-title mb-0" id="latest-temp">Loading...</h3>
-                    <p class="card-text small mb-0" id="latest-temp-time"></p>
+                    <h3 id="latest-temp">--</h3>
+                    <p class="small" id="latest-temp-time">Loading...</p>
                   </div>
                 </div>
               </div>
 
-              <div class="col-lg-3 col-md-6 col-12">
-                <div class="card text-white bg-info h-100">
+              <div class="col-lg-3 col-md-6">
+                <div class="card metric-card text-white bg-info">
                   <div class="card-header">Duration</div>
                   <div class="card-body">
-                    <h3 class="card-title mb-0" id="duration-days">Loading...</h3>
-                    <p class="card-text small mb-0" id="ferm-rate"></p>
+                    <h3 id="duration-days">--</h3>
+                    <p class="small" id="ferm-rate">Loading...</p>
                   </div>
                 </div>
               </div>
+
             </div>
 
-            <!-- SECTION 2: Fermentation Details -->
-            <div class="row mb-4">
-              <div class="col-12">
-                <h3 class="mb-3">Fermentation Progress</h3>
-              </div>
-            </div>
 
-            <div class="row mb-4 gx-4">
-              <div class="col-lg-6 col-12 mb-3 mb-lg-0">
-                <div class="card h-100">
-                  <div class="card-header bg-light">
-                    <i class="fas fa-chart-line me-2"></i>Fermentation Timeline
+            <!-- FERMENTATION PROGRESS -->
+            <h4 class="fw-semibold mb-3 mt-5">
+              <i class="fas fa-chart-line me-2"></i>Fermentation Progress
+            </h4>
+
+            <div class="row g-4 mb-4">
+
+              <div class="col-lg-6">
+                <div class="card">
+                  <div class="card-header">
+                    <i class="fas fa-clock me-2"></i>Fermentation Timeline
                   </div>
                   <div class="card-body">
                     <div class="mb-2">
@@ -160,9 +470,9 @@
                 </div>
               </div>
 
-              <div class="col-lg-6 col-12">
-                <div class="card h-100">
-                  <div class="card-header bg-light">
+              <div class="col-lg-6">
+                <div class="card">
+                  <div class="card-header">
                     <i class="fas fa-flask me-2"></i>Gravity Range
                   </div>
                   <div class="card-body">
@@ -181,134 +491,166 @@
                   </div>
                 </div>
               </div>
+
             </div>
 
-            <!-- SECTION 3: Temperature Controls -->
-            <div class="row mb-4">
-              <div class="col-12">
-                <h3 class="mb-3">Temperature Control</h3>
-              </div>
-            </div>
 
-            <div class="row mb-4 gx-4">
-              <div class="col-lg-6 col-12 mb-3 mb-lg-0">
-                <div class="card h-100">
-                  <div class="card-header bg-light">
-                    <i class="fas fa-thermometer-half me-2"></i>Fermentation Chamber
+            <!-- TEMPERATURE CONTROL -->
+            <h4 class="fw-semibold mb-3 mt-5">
+              <i class="fas fa-thermometer-half me-2"></i>Temperature Control
+            </h4>
+
+            <div class="row g-4 mb-4">
+
+              <!-- Fermentation chamber -->
+              <div class="col-lg-6">
+                <div class="card">
+                  <div class="card-header">
+                    <i class="fas fa-temperature-low me-2"></i>Fermentation Chamber
                   </div>
                   <div class="card-body">
-                    <div class="row mb-3">
-                      <div class="col-6">
-                        <div class="text-center p-3 bg-light rounded">
-                          <div class="text-muted small">Current</div>
-                          <h4 id="ferm-current-temp" class="mb-0">--°F</h4>
+
+                    <div class="row g-3 mb-3">
+                      <div class="col">
+                        <div class="temp-box">
+                          <div class="small">Current</div>
+                          <h4 id="ferm-current-temp">--°F</h4>
                         </div>
                       </div>
-                      <div class="col-6">
-                        <div class="text-center p-3 bg-light rounded">
-                          <div class="text-muted small">Target</div>
-                          <h4 id="ferm-set-temp" class="mb-0">--°F</h4>
+
+                      <div class="col">
+                        <div class="temp-box">
+                          <div class="small">Target</div>
+                          <h4 id="ferm-set-temp">--°F</h4>
                         </div>
                       </div>
                     </div>
+
                     <form method="POST">
                       {% csrf_token %}
                       {{ ferm_form.management_form }}
+
                       <div class="input-group">
                         {{ ferm_form.temp|add_class:"form-control" }}
                         <button type="submit" name="ferm-temp-submit" class="btn btn-primary">
                           <i class="fas fa-check me-1"></i>Set
                         </button>
                       </div>
-                      {% if ferm_feedback %}<div class="alert alert-success mt-2 mb-0 py-1">{{ ferm_feedback }}</div>{% endif %}
+
+                      {% if ferm_feedback %}
+                      <div class="alert alert-success mt-2 mb-0 py-2">
+                        <i class="fas fa-check-circle me-2"></i>{{ ferm_feedback }}
+                      </div>
+                      {% endif %}
                     </form>
+
                   </div>
                 </div>
               </div>
 
-              <div class="col-lg-6 col-12">
-                <div class="card h-100">
-                  <div class="card-header bg-light">
+
+              <!-- Keezer -->
+              <div class="col-lg-6">
+                <div class="card">
+                  <div class="card-header">
                     <i class="fas fa-snowflake me-2"></i>Keezer
                   </div>
                   <div class="card-body">
-                    <div class="row mb-3">
-                      <div class="col-6">
-                        <div class="text-center p-3 bg-light rounded">
-                          <div class="text-muted small">Current</div>
-                          <h4 id="freeze-current-temp" class="mb-0">--°F</h4>
+
+                    <div class="row g-3 mb-3">
+                      <div class="col">
+                        <div class="temp-box">
+                          <div class="small">Current</div>
+                          <h4 id="freeze-current-temp">--°F</h4>
                         </div>
                       </div>
-                      <div class="col-6">
-                        <div class="text-center p-3 bg-light rounded">
-                          <div class="text-muted small">Target</div>
-                          <h4 id="freeze-set-temp" class="mb-0">--°F</h4>
+
+                      <div class="col">
+                        <div class="temp-box">
+                          <div class="small">Target</div>
+                          <h4 id="freeze-set-temp">--°F</h4>
                         </div>
                       </div>
                     </div>
+
                     <form method="POST">
                       {% csrf_token %}
                       {{ freeze_form.management_form }}
+
                       <div class="input-group">
                         {{ freeze_form.temp|add_class:"form-control" }}
                         <button type="submit" name="freeze-temp-submit" class="btn btn-primary">
                           <i class="fas fa-check me-1"></i>Set
                         </button>
                       </div>
-                      {% if freeze_feedback %}<div class="alert alert-success mt-2 mb-0 py-1">{{ freeze_feedback }}</div>{% endif %}
+
+                      {% if freeze_feedback %}
+                      <div class="alert alert-success mt-2 mb-0 py-2">
+                        <i class="fas fa-check-circle me-2"></i>{{ freeze_feedback }}
+                      </div>
+                      {% endif %}
                     </form>
+
                   </div>
                 </div>
               </div>
+
             </div>
 
-            <!-- SECTION 4: Batch Selector & Graph -->
-            <div class="row mb-4">
-              <div class="col-12">
-                <h3 class="mb-3">Historical Data</h3>
-              </div>
-            </div>
 
+            <!-- HISTORICAL -->
+            <h4 class="fw-semibold mb-3 mt-5">
+              <i class="fas fa-history me-2"></i>Historical Data
+            </h4>
+
+            <!-- Batch Selector -->
             <div class="card mb-4">
-              <div class="card-header bg-light">
+              <div class="card-header">
                 <i class="fas fa-beer me-2"></i>Select Batch to View
               </div>
               <div class="card-body">
+
                 <form method="POST" class="row g-3">
                   {% csrf_token %}
+
                   <div class="col-md-8">
                     {{ tilt_form.name|add_class:"form-control" }}
                   </div>
+
                   <div class="col-md-4">
                     <button type="submit" class="btn btn-primary w-100">
-                      <i class="fas fa-search me-1"></i>View Batch
+                      <i class="fas fa-search me-2"></i>View Batch
                     </button>
                   </div>
                 </form>
+
               </div>
             </div>
 
+            <!-- Chart -->
             {% if tilt_chart_html %}
             <div class="card mb-4">
-              <div class="card-header bg-light">
+              <div class="card-header">
                 <i class="fas fa-chart-area me-2"></i>Fermentation Graph: {{ tilt_batch_name }}
               </div>
-              <div class="card-body p-2">
-                <div class="chart-container" style="width: 100%; overflow: hidden;">
+              <div class="card-body p-3">
+                <div class="chart-container">
                   {{ tilt_chart_html|safe }}
                 </div>
               </div>
             </div>
             {% endif %}
 
+            <!-- Data Table -->
             {% if tilt_data %}
-            <div class="card mb-4">
-              <div class="card-header bg-light">
+            <div class="card mb-5">
+              <div class="card-header">
                 <i class="fas fa-table me-2"></i>Data Table: {{ tilt_batch_name }}
               </div>
               <div class="card-body">
+
                 <div class="table-responsive">
-                  <table class="table table-sm table-hover">
+                  <table class="table table-sm table-hover align-middle">
                     <thead class="table-light">
                       <tr>
                         <th>Timestamp</th>
@@ -318,59 +660,59 @@
                         <th>Comment</th>
                       </tr>
                     </thead>
+
                     <tbody>
                       {% for entry in tilt_data %}
                       <tr>
                         <td>{{ entry.timestamp }}</td>
                         <td>{{ entry.temperature }}</td>
                         <td>{{ entry.gravity }}</td>
-                        <td><span class="badge" style="background-color: {{ entry.color }}">{{ entry.color }}</span></td>
+                        <td>
+                          <span class="badge" style="background-color: {{ entry.color }}; color: white;">
+                            {{ entry.color }}
+                          </span>
+                        </td>
                         <td>{{ entry.comment }}</td>
                       </tr>
                       {% endfor %}
                     </tbody>
+
                   </table>
                 </div>
+
               </div>
             </div>
             {% endif %}
+
           </div>
         </main>
 
-        <!-- Keep your existing footer -->
-      </div>
 
-        <!-- Footer -->
-        <footer class="py-4 bg-light mt-auto">
+        <!-- FOOTER -->
+        <footer class="py-4 bg-light mt-auto border-top">
           <div class="container-fluid px-4">
-            <div class="d-flex align-items-center justify-content-between small">
-              <div class="text-muted">Copyright &copy; Your Website 2023</div>
-              <div>
-                <a href="#">Privacy Policy</a>
-                &middot;
-                <a href="#">Terms &amp; Conditions</a>
-              </div>
+            <div class="d-flex justify-content-between small text-muted">
+              <span><i class="fas fa-beer me-1"></i>© 2024 Beer Dashboard</span>
+              <span><a href="#" class="text-decoration-none">Privacy</a> • <a href="#" class="text-decoration-none">Terms</a></span>
             </div>
           </div>
         </footer>
+
       </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js" crossorigin="anonymous"></script>
+
+    <!-- BOOTSTRAP + LIBRARIES -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- YOUR SCRIPTS -->
     <script src="{% static 'line_graph.js' %}"></script>
     <script src="{% static 'tilt_data.js' %}"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
-    <script>
-      $(document).ready(function () {
-        $('#df_json').DataTable();
-      });
 
-      // Sidebar toggle - only need this ONCE
+    <script>
+      // Sidebar toggle
       document.addEventListener("DOMContentLoaded", function () {
-        // Don't add any classes on load - sidebar starts closed by default
         document.getElementById("sidebarToggle").addEventListener("click", function (e) {
           e.preventDefault();
           document.body.classList.toggle("sb-sidenav-toggled");
@@ -382,8 +724,8 @@
           .then(response => response.json())
           .then(data => {
             if (data.error) {
-              document.getElementById("latest-temp").textContent = "No data";
-              document.getElementById("latest-gravity").textContent = "No data";
+              document.getElementById("latest-temp").textContent = "--";
+              document.getElementById("latest-gravity").textContent = "--";
             } else {
               document.getElementById("latest-temp").textContent = `${data.temperature}°F`;
               document.getElementById("latest-temp-time").textContent = `Updated ${data.timestamp}`;
@@ -391,7 +733,7 @@
               document.getElementById("current-gravity").textContent = data.gravity.toFixed(3);
               document.getElementById("latest-gravity-name").textContent = data.name;
               document.getElementById("latest-abv").textContent = `${data.abv}`;
-              document.getElementById("duration-days").textContent = `${data.duration}`;
+              document.getElementById("duration-days").textContent = data.duration;
               document.getElementById("high").textContent = data.highest_gravity;
               document.getElementById("low").textContent = data.lowest_gravity;
               document.getElementById("apparent-attenuation").textContent = `${data.apparent_attenuation}% Attenuation`;
@@ -407,12 +749,9 @@
         fetch("/api/latest-freeze-ink-data/")
           .then(response => response.json())
           .then(data => {
-            if (data.error) {
-              document.getElementById("freeze-current-temp").textContent = "No data";
-              document.getElementById("freeze-set-temp").textContent = "No data";
-            } else {
-              document.getElementById("freeze-current-temp").textContent = `Current: ${data.freeze_current_temp} °F`;
-              document.getElementById("freeze-set-temp").textContent = `Target: ${data.freeze_set_temp} °F`;
+            if (!data.error) {
+              document.getElementById("freeze-current-temp").textContent = `${data.freeze_current_temp}°F`;
+              document.getElementById("freeze-set-temp").textContent = `${data.freeze_set_temp}°F`;
             }
           })
           .catch(err => console.error("Failed to fetch freeze data:", err));
@@ -425,12 +764,9 @@
         fetch("/api/latest-ferm-ink-data/")
           .then(response => response.json())
           .then(data => {
-            if (data.error) {
-              document.getElementById("ferm-current-temp").textContent = "No data";
-              document.getElementById("ferm-set-temp").textContent = "No data";
-            } else {
-              document.getElementById("ferm-current-temp").textContent = `Current: ${data.ferm_current_temp} °F`;
-              document.getElementById("ferm-set-temp").textContent = `Target: ${data.ferm_set_temp} °F`;
+            if (!data.error) {
+              document.getElementById("ferm-current-temp").textContent = `${data.ferm_current_temp}°F`;
+              document.getElementById("ferm-set-temp").textContent = `${data.ferm_set_temp}°F`;
             }
           })
           .catch(err => console.error("Failed to fetch ferm data:", err));
@@ -443,13 +779,7 @@
         fetch("/api/calculate-slope/")
           .then(response => response.json())
           .then(data => {
-            if (data.error) {
-              document.getElementById("ferm-rate").textContent = "No data";
-              document.getElementById("ferm-start-time").textContent = "Loading...";
-              document.getElementById("ferm-end-time").textContent = "Loading...";
-              document.getElementById("ferm-duration").textContent = "Loading...";
-              document.getElementById("ferm-rate-detail").textContent = "Loading...";
-            } else {
+            if (!data.error) {
               document.getElementById("ferm-rate").textContent = data.slope;
               document.getElementById("ferm-rate-detail").textContent = data.slope;
               document.getElementById("ferm-start-time").textContent = data.fermentation_started_at;
@@ -467,30 +797,25 @@
       }
 
       calculate_slope();
-      setInterval(calculate_slope, 300000); // 5 minutes
+      setInterval(calculate_slope, 300000);
 
-      // Add this to your existing script section
+      // Auto-resize Plotly chart
       document.addEventListener('DOMContentLoaded', function() {
-          // Observer to detect when chart is added to DOM
-          const observer = new MutationObserver(function(mutations) {
-              mutations.forEach(function(mutation) {
-                  if (mutation.addedNodes.length) {
-                      const plotlyDiv = document.querySelector('.js-plotly-plot');
-                      if (plotlyDiv && window.Plotly) {
-                          setTimeout(function() {
-                              window.Plotly.Plots.resize(plotlyDiv);
-                          }, 50);
-                      }
-                  }
-              });
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length) {
+              const plotlyDiv = document.querySelector('.js-plotly-plot');
+              if (plotlyDiv && window.Plotly) {
+                setTimeout(() => window.Plotly.Plots.resize(plotlyDiv), 50);
+              }
+            }
           });
+        });
 
-          const container = document.querySelector('.container-fluid');
-          if (container) {
-              observer.observe(container, { childList: true, subtree: true });
-          }
+        const container = document.querySelector('.container-fluid');
+        if (container) observer.observe(container, { childList: true, subtree: true });
       });
-
     </script>
+
   </body>
 </html>
