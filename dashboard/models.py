@@ -37,7 +37,7 @@ class ProfileDataSelect(models.Model):
 class FermentationDataTilt(models.Model):
     name = models.CharField(max_length=50)
     temperature = models.FloatField()
-    gravity = models.FloatField()
+    gravity = models.DecimalField("GRAVITY",decimal_places=4,max_digits=5)
     color = models.CharField(max_length=20, blank=True)
     timestamp = models.DateTimeField()
     comment = models.CharField(max_length=250, blank=True)
