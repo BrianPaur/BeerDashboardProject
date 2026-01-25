@@ -21,4 +21,5 @@ urlpatterns = [
     path('api/latest-freeze-ink-data/', views.get_inkbird_freeze_data, name='get_latest_freeze_ink_data'),
     path('api/latest-ferm-ink-data/', views.get_inkbird_ferm_data, name='get_latest_ferm_ink_data'),
     path('api/calculate-slope/', views.calculate_slope, name='calculate_slope'),
+    path('import-csv/', views.import_tilt_csv, name='import_tilt_csv'),
 ]

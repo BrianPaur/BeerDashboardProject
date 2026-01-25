@@ -18,7 +18,7 @@ from django.db.models import Min, Max
 
 
 from .models import TemperatureData,FermentationData, GoogleSheetSourceData, ProfileDataSelect, FermentationDataTilt
-from .forms import DateForm, DateFilterForm, TempSetFermForm, TempSetFreezeForm, GoogleSheetURLForm, SelectGoogleSheetForm, UserRegistrationForm, TiltDataSelectForm , TempGetFreezeForm, TempGetFermForm
+from .forms import DateForm, DateFilterForm, TempSetFermForm, TempSetFreezeForm, GoogleSheetURLForm, SelectGoogleSheetForm, UserRegistrationForm, TiltDataSelectForm , TempGetFreezeForm, TempGetFermForm, CSVImportForm
 
 
 import schedule
@@ -32,6 +32,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 from decimal import Decimal
+import csv
+from dateutil import parser
 
 import gspread
 import pandas as pd
@@ -606,3 +608,72 @@ def get_inkbird_ferm_data(request):
         })
     else:
         return JsonResponse({'error': 'No data found'}, status=404)
+
+
+@login_required
+def import_tilt_csv(request):
+    if request.method == 'POST':
+        form = CSVImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            csv_file = request.FILES['csv_file']
+
+            # Decode the file
+            decoded_file = csv_file.read().decode('utf-8').splitlines()
+            reader = csv.DictReader(decoded_file)
+
+            success_count = 0
+            error_count = 0
+            errors = []
+
+            for row_num, row in enumerate(reader, start=2):  # Start at 2 because row 1 is header
+                try:
+                    # Handle both old format (name, temperature, gravity...) and new format (Beer, Temp, SG...)
+                    name = row.get('Beer') or row.get('name', 'Unknown')
+                    name = name.strip() if name else 'Unknown'
+
+                    temperature = float(row.get('Temp') or row.get('temperature', 0))
+                    gravity = float(row.get('SG') or row.get('gravity', 0))
+                    color = row.get('Color') or row.get('color', '')
+                    color = color.strip() if color else ''
+
+                    # Handle timestamp - could be 'Time' or 'timestamp'
+                    timestamp_str = row.get('Time') or row.get('timestamp', '')
+                    timestamp_str = timestamp_str.strip() if timestamp_str else ''
+
+                    comment = row.get('Comment') or row.get('comment', '')
+                    comment = comment.strip() if comment else ''
+
+                    # Parse timestamp - handles multiple formats including "1/15/25 1:37:45 PM"
+                    if timestamp_str:
+                        timestamp = parser.parse(timestamp_str)
+                    else:
+                        timestamp = timezone.now()
+
+                    # Create the record
+                    FermentationDataTilt.objects.create(
+                        name=name,
+                        temperature=temperature,
+                        gravity=gravity,
+                        color=color,
+                        timestamp=timestamp,
+                        comment=comment
+                    )
+                    success_count += 1
+
+                except Exception as e:
+                    error_count += 1
+                    errors.append(f"Row {row_num}: {str(e)}")
+
+            # Show results
+            if success_count > 0:
+                messages.success(request, f'Successfully imported {success_count} records.')
+            if error_count > 0:
+                messages.warning(request, f'{error_count} rows had errors. See details below.')
+                for error in errors[:10]:  # Show first 10 errors
+                    messages.error(request, error)
+
+            return redirect('import_tilt_csv')
+    else:
+        form = CSVImportForm()
+
+    return render(request, 'dashboard/import_csv.html', {'form': form})
