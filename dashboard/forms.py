@@ -2,10 +2,10 @@ from django import forms
 from datetime import date, timedelta
 from tuya_connector import TuyaOpenAPI
 # from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID,DEVICE_ID2
-# import json
-# with open('/etc/secrets/creds.json') as f:
-#     creds = json.load(f)
-#
+import json
+with open('/etc/secrets/creds.json') as f:
+    creds = json.load(f)
+
 ACCESS_ID = creds['ACCESS_ID']
 ACCESS_KEY = creds['ACCESS_KEY']
 ENDPOINT = creds['ENDPOINT']
