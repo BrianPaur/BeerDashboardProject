@@ -729,8 +729,8 @@
             } else {
               document.getElementById("latest-temp").textContent = `${data.temperature}°F`;
               document.getElementById("latest-temp-time").textContent = `Updated ${data.timestamp}`;
-              document.getElementById("latest-gravity").textContent = data.gravity.toFixed(3);
-              document.getElementById("current-gravity").textContent = data.gravity.toFixed(3);
+              document.getElementById("latest-gravity").textContent = data.gravity;
+              document.getElementById("current-gravity").textContent = data.gravity;
               document.getElementById("latest-gravity-name").textContent = data.name;
               document.getElementById("latest-abv").textContent = `${data.abv}`;
               document.getElementById("duration-days").textContent = data.duration;

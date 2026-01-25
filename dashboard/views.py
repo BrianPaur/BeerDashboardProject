@@ -31,6 +31,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
+from decimal import Decimal
 
 import gspread
 import pandas as pd
@@ -420,7 +421,7 @@ def get_latest_tilt_data(request):
             highest_gravity = FermentationDataTilt.objects.aggregate(Max('gravity'))
             lowest_gravity = FermentationDataTilt.objects.aggregate(Min('gravity'))
             # ABV calculation: (OG - FG) * 131.25
-            abv = round((original_gravity - current_gravity) * 131.25, 2)
+            abv = round((original_gravity - current_gravity) * Decimal(str(131.25)), 2)
 
             # Calculate duration
             first_timestamp = timezone.localtime(batch_data.first().timestamp)
@@ -436,13 +437,13 @@ def get_latest_tilt_data(request):
 
         return JsonResponse({
             'temperature': latest.temperature,
-            'gravity': latest.gravity,
+            'gravity': round(latest.gravity,3),
             'timestamp': local_time.strftime('%m-%d-%Y %I:%M:%S %p'),
             'name': latest.name,
             'abv': f'{abv}%',
             'duration': duration,
-            'highest_gravity': highest_gravity['gravity__max'],
-            'lowest_gravity': lowest_gravity['gravity__min'],
+            'highest_gravity': round(highest_gravity['gravity__max'],3),
+            'lowest_gravity': round(lowest_gravity['gravity__min'],3),
             'apparent_attenuation':apparent_attenuation
         })
     else:
@@ -485,7 +486,7 @@ def calculate_slope(request):
                 is_sustained_drop = False
                 break
             # Check if this reading and the next few are consistently lower
-            if gravities[i + j] >= max_gravity_so_far - gravity_drop_threshold:
+            if float(gravities[i + j]) >= float(max_gravity_so_far) - gravity_drop_threshold:
                 is_sustained_drop = False
                 break
 
@@ -506,7 +507,7 @@ def calculate_slope(request):
             if i + j + 1 >= len(gravities):
                 is_stable = False
                 break
-            gravity_change = abs(gravities[i + j] - gravities[i + j + 1])
+            gravity_change = abs(float(gravities[i + j]) - float(gravities[i + j + 1]))
             if gravity_change > stability_threshold:
                 is_stable = False
                 break
@@ -517,7 +518,7 @@ def calculate_slope(request):
 
     # Check if fermentation has started
     if fermentation_start_index == 0:
-        if gravities[0] - gravities[-1] < gravity_drop_threshold:
+        if float(gravities[0]) - float(gravities[-1]) < gravity_drop_threshold:
             return JsonResponse({
                 'slope': 'Fermentation not started',
                 'slope_raw': 0
@@ -533,7 +534,7 @@ def calculate_slope(request):
     # Convert timestamps to DAYS since fermentation start
     first_time = active_timestamps[0]
     x_data = np.array([(t - first_time).total_seconds() / 86400 for t in active_timestamps])
-    y_data = np.array(active_gravities)
+    y_data = np.array([float(g) for g in active_gravities])
 
     # Calculate means
     x_mean = np.mean(x_data)
