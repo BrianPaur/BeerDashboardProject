@@ -420,10 +420,10 @@ def get_latest_tilt_data(request):
         if batch_data.exists() and batch_data.count() > 1:
             original_gravity = batch_data.first().gravity
             current_gravity = latest.gravity
-            highest_gravity = FermentationDataTilt.objects.aggregate(Max('gravity'))
-            lowest_gravity = FermentationDataTilt.objects.aggregate(Min('gravity'))
+            highest_gravity = batch_data.aggregate(Max('gravity'))
+            lowest_gravity = batch_data.aggregate(Min('gravity'))
             # ABV calculation: (OG - FG) * 131.25
-            abv = round((original_gravity - current_gravity) * Decimal(str(131.25)), 2)
+            abv = round((highest_gravity['gravity__max'] - current_gravity) * Decimal(str(131.25)), 2)
 
             # Calculate duration
             first_timestamp = timezone.localtime(batch_data.first().timestamp)
@@ -435,7 +435,7 @@ def get_latest_tilt_data(request):
             minutes = (duration_delta.seconds % 3600) // 60
             duration = f"{days}:{hours}:{minutes}"
 
-            apparent_attenuation = round((((original_gravity-current_gravity)/(original_gravity-1))*100),2)
+            apparent_attenuation = round((((highest_gravity['gravity__max']-current_gravity)/(highest_gravity['gravity__max']-1))*100),2)
 
         return JsonResponse({
             'temperature': latest.temperature,
@@ -609,7 +609,6 @@ def get_inkbird_ferm_data(request):
     else:
         return JsonResponse({'error': 'No data found'}, status=404)
 
-
 @login_required
 def import_tilt_csv(request):
     if request.method == 'POST':
@@ -677,5 +676,4 @@ def import_tilt_csv(request):
         form = CSVImportForm()
 
     return render(request, 'dashboard/import_csv.html', {'form': form})
-
 

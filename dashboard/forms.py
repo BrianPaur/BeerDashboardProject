@@ -1,16 +1,16 @@
 from django import forms
 from datetime import date, timedelta
 from tuya_connector import TuyaOpenAPI
-# from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID,DEVICE_ID2
-import json
-with open('/etc/secrets/creds.json') as f:
-    creds = json.load(f)
-
-ACCESS_ID = creds['ACCESS_ID']
-ACCESS_KEY = creds['ACCESS_KEY']
-ENDPOINT = creds['ENDPOINT']
-DEVICE_ID = creds['DEVICE_ID']
-DEVICE_ID2 = creds['DEVICE_ID2']
+from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID,DEVICE_ID2
+# import json
+# with open('/etc/secrets/creds.json') as f:
+#     creds = json.load(f)
+#
+# ACCESS_ID = creds['ACCESS_ID']
+# ACCESS_KEY = creds['ACCESS_KEY']
+# ENDPOINT = creds['ENDPOINT']
+# DEVICE_ID = creds['DEVICE_ID']
+# DEVICE_ID2 = creds['DEVICE_ID2']
 
 from django import forms
 from .models import GoogleSheetSourceData, FermentationDataTilt
@@ -164,3 +164,14 @@ class TiltDataSelectForm(forms.Form):
         batch_names = FermentationDataTilt.objects.values_list('name', flat=True).distinct()
         self.fields['name'].choices = [(name, name) for name in batch_names if name]
 
+class CSVImportForm(forms.Form):
+    csv_file = forms.FileField(
+        label='Select CSV File',
+        help_text='Upload a CSV file with columns: name, temperature, gravity, color, timestamp, comment'
+    )
+
+    def clean_csv_file(self):
+        file = self.cleaned_data['csv_file']
+        if not file.name.endswith('.csv'):
+            raise forms.ValidationError('File must be a CSV')
+        return file
