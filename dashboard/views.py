@@ -400,12 +400,20 @@ def tilt_debug(request):
 
     return JsonResponse({'status': 'received', 'method': request.method})
 
+
 @require_GET
 @login_required
 def get_latest_tilt_data(request):
-    latest = FermentationDataTilt.objects.order_by('-timestamp').first()
-    if latest:
+    batch_name = request.GET.get('batch', None)
 
+    if batch_name:
+        # Get the latest data for the specified batch
+        latest = FermentationDataTilt.objects.filter(name=batch_name).order_by('-timestamp').first()
+    else:
+        # Get the latest data overall
+        latest = FermentationDataTilt.objects.order_by('-timestamp').first()
+
+    if latest:
         # Use Django's timezone handling instead of manual adjustment
         local_time = timezone.localtime(latest.timestamp)
 
@@ -417,13 +425,15 @@ def get_latest_tilt_data(request):
 
         abv = 0  # Default value
         duration = "0 days"  # Default value
+        apparent_attenuation = 0
+
         if batch_data.exists() and batch_data.count() > 1:
             original_gravity = batch_data.first().gravity
             current_gravity = latest.gravity
             highest_gravity = batch_data.aggregate(Max('gravity'))
             lowest_gravity = batch_data.aggregate(Min('gravity'))
             # ABV calculation: (OG - FG) * 131.25
-            abv = round((highest_gravity['gravity__max'] - current_gravity) * Decimal(str(131.25)), 2)
+            abv = round((float(highest_gravity['gravity__max']) - float(current_gravity)) * 131.25, 2)
 
             # Calculate duration
             first_timestamp = timezone.localtime(batch_data.first().timestamp)
@@ -435,18 +445,22 @@ def get_latest_tilt_data(request):
             minutes = (duration_delta.seconds % 3600) // 60
             duration = f"{days}:{hours}:{minutes}"
 
-            apparent_attenuation = round((((highest_gravity['gravity__max']-current_gravity)/(highest_gravity['gravity__max']-1))*100),2)
+            apparent_attenuation = round((((float(highest_gravity['gravity__max']) - float(current_gravity)) / (
+                        float(highest_gravity['gravity__max']) - 1)) * 100), 2)
 
         return JsonResponse({
             'temperature': latest.temperature,
-            'gravity': round(latest.gravity,3),
+            'gravity': round(float(latest.gravity), 3),
             'timestamp': local_time.strftime('%m-%d-%Y %I:%M:%S %p'),
             'name': latest.name,
             'abv': f'{abv}%',
             'duration': duration,
-            'highest_gravity': round(highest_gravity['gravity__max'],3),
-            'lowest_gravity': round(lowest_gravity['gravity__min'],3),
-            'apparent_attenuation':apparent_attenuation
+            'highest_gravity': round(float(highest_gravity['gravity__max']), 3) if 'gravity__max' in highest_gravity and
+                                                                                   highest_gravity[
+                                                                                       'gravity__max'] else 0,
+            'lowest_gravity': round(float(lowest_gravity['gravity__min']), 3) if 'gravity__min' in lowest_gravity and
+                                                                                 lowest_gravity['gravity__min'] else 0,
+            'apparent_attenuation': apparent_attenuation
         })
     else:
         return JsonResponse({'error': 'No data found'}, status=404)
@@ -454,15 +468,18 @@ def get_latest_tilt_data(request):
 @require_GET
 @login_required
 def calculate_slope(request):
-    # Get the latest batch name
-    latest = FermentationDataTilt.objects.order_by('-timestamp').first()
-    if not latest:
-        return JsonResponse({'error': 'No data found'}, status=404)
+    batch_name = request.GET.get('batch', None)
 
-    batch_name = latest.name
-
-    # Get data for the current batch only
-    batch_data = FermentationDataTilt.objects.filter(name=batch_name).order_by('timestamp')
+    if batch_name:
+        # Get data for specified batch
+        batch_data = FermentationDataTilt.objects.filter(name=batch_name).order_by('timestamp')
+    else:
+        # Get the latest batch name
+        latest = FermentationDataTilt.objects.order_by('-timestamp').first()
+        if not latest:
+            return JsonResponse({'error': 'No data found'}, status=404)
+        batch_name = latest.name
+        batch_data = FermentationDataTilt.objects.filter(name=batch_name).order_by('timestamp')
 
     if batch_data.count() < 2:
         return JsonResponse({'error': 'Not enough data points'}, status=404)
@@ -676,4 +693,3 @@ def import_tilt_csv(request):
         form = CSVImportForm()
 
     return render(request, 'dashboard/import_csv.html', {'form': form})
-
