@@ -17,9 +17,17 @@ from django.views.decorators.http import require_GET
 from django.db.models import Min, Max
 
 
-from .models import TemperatureData,FermentationData, GoogleSheetSourceData, ProfileDataSelect, FermentationDataTilt
-from .forms import DateForm, DateFilterForm, TempSetFermForm, TempSetFreezeForm, GoogleSheetURLForm, SelectGoogleSheetForm, UserRegistrationForm, TiltDataSelectForm , TempGetFreezeForm, TempGetFermForm, CSVImportForm
+from .models import TemperatureData,FermentationData, FermentationDataTilt
+from .forms import (
+    TempSetFermForm,
+    TempSetFreezeForm,
+    UserRegistrationForm,
+    TiltDataSelectForm,
+    CSVImportForm,
+)
 
+from .services.inkbird import InkbirdService
+from dashboard.creds.creds import DEVICE_ID, DEVICE_ID2
 
 import schedule
 import time
@@ -55,48 +63,98 @@ def register(request):
 
 @login_required
 def index(request):
+    ferm_inkbird = InkbirdService(DEVICE_ID)
+    freeze_inkbird = InkbirdService(DEVICE_ID2)
 
-    # Handle TempSetForm
-    ferm_form = TempSetFermForm(request.POST or None, prefix="ferm")
-    freeze_form = TempSetFreezeForm(request.POST or None, prefix="freeze")
+    ferm_form = TempSetFermForm(
+        request.POST or None,
+        prefix="ferm"
+    )
+
+    freeze_form = TempSetFreezeForm(
+        request.POST or None,
+        prefix="freeze"
+    )
 
     ferm_feedback = None
     freeze_feedback = None
 
     if request.method == "POST":
-        if 'ferm-temp-submit' in request.POST and ferm_form.is_valid():
-            ferm_feedback = ferm_form.set_temp(ferm_form.cleaned_data['temp'])
-        elif 'freeze-temp-submit' in request.POST and freeze_form.is_valid():
-            freeze_feedback = freeze_form.set_temp(freeze_form.cleaned_data['temp'])
 
-    # Handle getting current temps
+        if "ferm-temp-submit" in request.POST:
+            if ferm_form.is_valid():
 
-    # current_ferm_temp = TempGetFermForm(request.GET or None, prefix="c_ferm")
-    # current_freeze_temp = TempGetFreezeForm(request.GET or None, prefix="c_freeze")
+                try:
+                    temperature = ferm_form.cleaned_data["temp"]
 
-    # Handle tilt batch select
+                    ferm_inkbird.set_temperature(temperature)
+
+                    ferm_feedback = (
+                        f"Temperature set to {temperature}°F successfully."
+                    )
+
+                except Exception as e:
+                    ferm_feedback = f"Failed to set temperature: {e}"
+
+        elif "freeze-temp-submit" in request.POST:
+            if freeze_form.is_valid():
+
+                try:
+                    temperature = freeze_form.cleaned_data["temp"]
+
+                    freeze_inkbird.set_temperature(temperature)
+
+                    freeze_feedback = (
+                        f"Temperature set to {temperature}°F successfully."
+                    )
+
+                except Exception as e:
+                    freeze_feedback = f"Failed to set temperature: {e}"
+
+    # Handle Tilt batch select
     tilt_form = TiltDataSelectForm(request.POST or None)
-    tilt_data = FermentationDataTilt.objects.none()  # Default to empty queryset
+
+    tilt_data = FermentationDataTilt.objects.none()
     tilt_batch_name = None
     tilt_chart_html = None
 
     if request.method == "POST" and tilt_form.is_valid():
-        tilt_batch_name = tilt_form.cleaned_data['name']
-        tilt_data = FermentationDataTilt.objects.filter(name=tilt_batch_name).order_by('-timestamp')
+
+        tilt_batch_name = tilt_form.cleaned_data["name"]
+
+        tilt_data = (
+            FermentationDataTilt.objects
+            .filter(name=tilt_batch_name)
+            .order_by("-timestamp")
+        )
 
         if tilt_data.exists():
+
             timestamps = [entry.timestamp for entry in tilt_data]
             temps = [entry.temperature for entry in tilt_data]
             gravities = [entry.gravity for entry in tilt_data]
 
-            fig = make_subplots(specs=[[{"secondary_y": True}]])
+            fig = make_subplots(
+                specs=[[{"secondary_y": True}]]
+            )
 
             fig.add_trace(
-                go.Scatter(x=timestamps, y=temps, name="Temperature (°F)", line=dict(color='red')),
+                go.Scatter(
+                    x=timestamps,
+                    y=temps,
+                    name="Temperature (°F)",
+                    line=dict(color="red")
+                ),
                 secondary_y=False,
             )
+
             fig.add_trace(
-                go.Scatter(x=timestamps, y=gravities, name="Gravity", line=dict(color='blue')),
+                go.Scatter(
+                    x=timestamps,
+                    y=gravities,
+                    name="Gravity",
+                    line=dict(color="blue")
+                ),
                 secondary_y=True,
             )
 
@@ -107,239 +165,43 @@ def index(request):
                 legend=dict(x=0.01, y=0.99),
                 height=400,
                 autosize=True,
-                margin=dict(l=60, r=60, t=80, b=60)
+                margin=dict(
+                    l=60,
+                    r=60,
+                    t=80,
+                    b=60
+                )
             )
 
-            fig.update_yaxes(title_text="Gravity", secondary_y=True)
+            fig.update_yaxes(
+                title_text="Gravity",
+                secondary_y=True
+            )
 
             tilt_chart_html = fig.to_html(
                 full_html=False,
                 config={
-                    'responsive': True,
-                    'displayModeBar': True,
-                    'displaylogo': False
+                    "responsive": True,
+                    "displayModeBar": True,
+                    "displaylogo": False
                 },
-                div_id='tilt-chart'  # Give it an ID
+                div_id="tilt-chart"
             )
 
-    # Render the page
-    return render(request, 'dashboard/index.html', {
-        'ferm_form': ferm_form,
-        'freeze_form': freeze_form,
-        'ferm_feedback': ferm_feedback,
-        'freeze_feedback': freeze_feedback,
-        'tilt_form': tilt_form,
-        'tilt_data': tilt_data,
-        'tilt_batch_name': tilt_batch_name,
-        'tilt_chart_html': tilt_chart_html,
-        # 'current_ferm_temp':current_ferm_temp,
-        # 'current_freeze_temp':current_freeze_temp,
-    })
-
-@login_required
-def google_sheet_dashboard(request):
-    google_sheet_data = GoogleSheetSourceData.objects.all()
-    df_json = []
-    df_json_sorted = []
-    # Load TemperatureData from the database
-    temperature_data = TemperatureData.objects.all()
-
-    if request.method == 'POST':
-        form = SelectGoogleSheetForm(request.POST)
-        if form.is_valid():
-            selected_sheet = form.cleaned_data['google_sheet_url']
-            selected_url = selected_sheet.sourceURL
-            gc = gspread.service_account(
-                filename='/etc/secrets/credentials.json')
-            sh = gc.open_by_url(selected_url)
-            worksheet = sh.worksheet("Data")
-            list_of_lists = worksheet.get('A2:F2972')
-            df = pd.DataFrame(list_of_lists)
-            df.columns = ['Timestamp', 'Timepoint', 'SG', 'Temp', 'Color', 'Beer']
-            df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-
-            # Handle DateFilterForm
-            date_form = DateFilterForm(request.GET)
-            if date_form.is_valid():
-                start_date = date_form.cleaned_data.get('start_date')
-                end_date = date_form.cleaned_data.get('end_date')
-
-                if start_date:
-                    temperature_data = temperature_data.filter(time_stamp__gte=start_date)
-                    df = df[df['Timestamp'] >= pd.to_datetime(start_date)]
-                if end_date:
-                    temperature_data = temperature_data.filter(time_stamp__lte=end_date)
-                    df = df[df['Timestamp'] <= pd.to_datetime(end_date)]
-
-            # Prepare data for charts
-            data = temperature_data.order_by('time_stamp')
-            latest_temp = temperature_data.order_by('-time_stamp').values_list('current_temp', flat=True).first()
-            df['Timestamp'] = pd.to_datetime(df['Timestamp']).dt.strftime('%Y-%m-%d %H:%M:%S')
-            df_sort = df.sort_values('Timestamp', ascending=False)
-            df_json_sorted = df_sort.to_dict(orient='records')
-            df_json = df.to_dict(orient='records')
-        else:
-            # Handle DateFilterForm
-            date_form = DateFilterForm(request.GET)
-            data = temperature_data.order_by('time_stamp')
-            latest_temp = temperature_data.order_by('-time_stamp').values_list('current_temp', flat=True).first()
-            df_json = []
-            df_json_sorted = []
-    else:
-        # Load TemperatureData from the database
-        temperature_data = TemperatureData.objects.all()
-        # Handle DateFilterForm
-        date_form = DateFilterForm(request.GET)
-        data = temperature_data.order_by('time_stamp')
-        latest_temp = temperature_data.order_by('-time_stamp').values_list('current_temp', flat=True).first()
-        form = SelectGoogleSheetForm()
-
-    # Handle TempSetForm
-    temp_form = TempSetFermForm(request.POST or None)
-    temp_feedback = None
-    if request.method == "POST" and temp_form.is_valid():
-        temp_feedback = temp_form.set_temp(temp_form.cleaned_data['temp'])
-
-    # Render the page
-    return render(request, 'dashboard/google_sheets_dashboard.html', {
-        'data': data,
-        'df_json': df_json,
-        'df_json_sorted':df_json_sorted,
-        'date_form': date_form,
-        'temp_form': temp_form,
-        'temp_feedback': temp_feedback,
-        'latest_temp':latest_temp,
-        'form': form,
-    })
-
-@login_required
-def historical_data(request):
-    start = request.GET.get('start')
-    end = request.GET.get('end')
-
-    all_data = TemperatureData.objects.order_by("-time_stamp")
-
-    if start:
-        all_data = all_data.filter(time_stamp__gte=start)
-    if end:
-        all_data = all_data.filter(time_stamp__lte=end)
-
-    fig = px.line(
-        x=[c.time_stamp for c in all_data],
-        y=[[c.current_temp for c in all_data],[c.set_temp for c in all_data]],
-        title="Historical Temperature",
-        labels={'x':"Time Stamp",'y':"Temperature"}
+    return render(
+        request,
+        "dashboard/index.html",
+        {
+            "ferm_form": ferm_form,
+            "freeze_form": freeze_form,
+            "ferm_feedback": ferm_feedback,
+            "freeze_feedback": freeze_feedback,
+            "tilt_form": tilt_form,
+            "tilt_data": tilt_data,
+            "tilt_batch_name": tilt_batch_name,
+            "tilt_chart_html": tilt_chart_html,
+        }
     )
-
-    fig.update_layout(title={
-        'font_size':22,
-        'xanchor':'center',
-        'x':0.5
-    })
-
-    chart = fig.to_html()
-
-    context = {"chart": chart, 'form':DateForm(), 'all_data':all_data }
-    return render(request, "dashboard/historical.html", context)
-
-@login_required
-def dashboard_view(request):
-    # Get filter parameters from the request
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-
-    # Filter data based on the provided dates
-    temperature_data = TemperatureData.objects.all()
-
-    if start_date:
-        data = temperature_data.filter(time_stamp__gte=start_date)
-    if end_date:
-        data = temperature_data.filter(time_stamp__lte=end_date)
-
-    data = temperature_data.order_by('time_stamp')  # Ensure data is ordered by timestamp
-
-    fermentation_data = FermentationData.objects.all()
-
-    return render(request, 'dashboard/dashboard_view.html', {
-        'data': data,
-        'fermentation_data': fermentation_data,
-        'request': request,  # Pass request object to use GET parameters in the form
-    })
-
-@login_required
-def dashboard_view_dark(request):
-    # Get filter parameters from the request
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-
-    # Filter data based on the provided dates
-    data = TemperatureData.objects.all()
-    if start_date:
-        data = data.filter(time_stamp__gte=start_date)
-    if end_date:
-        data = data.filter(time_stamp__lte=end_date)
-
-    data = data.order_by('time_stamp')  # Ensure data is ordered by timestamp
-
-    return render(request, 'dashboard/dashboard_view_dark.html', {
-        'data': data,
-        'request': request,  # Pass request object to use GET parameters in the form
-    })
-
-@login_required
-def update_google_sheet_url(request, pk=None):
-    if pk:
-        # If a primary key is provided, retrieve the existing record
-        sheet_instance = get_object_or_404(GoogleSheetSourceData, pk=pk)
-    else:
-        # Otherwise, create a new instance
-        sheet_instance = None
-
-    if request.method == 'POST':
-        form = GoogleSheetURLForm(request.POST, instance=sheet_instance)
-        if form.is_valid():
-            form.save()  # Save the changes or create a new entry
-            return redirect('update_google_sheet_url')  # Redirect to the same page after saving
-    else:
-        form = GoogleSheetURLForm(instance=sheet_instance)
-
-    # Fetch all entries for display
-    all_sheets = GoogleSheetSourceData.objects.all()
-
-    return render(request, 'dashboard/update_google_sheet_url.html', {
-        'form': form,
-        'all_sheets': all_sheets,
-    })
-
-@login_required
-def delete_google_sheet(request, pk):
-    google_sheet = get_object_or_404(GoogleSheetSourceData, pk=pk)
-
-    if request.method == "POST":
-        readable_name = google_sheet.readable_name
-        google_sheet.delete()
-        messages.success(request, f'Successfully deleted "{readable_name}".')
-        return redirect('update_google_sheet_url')  # Redirect to the index page or another relevant page.
-
-    return render(request, 'dashboard/delete_google_sheet.html', {'google_sheet': google_sheet})
-
-@login_required
-def add_google_sheet_url(request):
-    if request.method == 'POST':
-        form = GoogleSheetSourceDataForm(request.POST)
-        if form.is_valid():
-            try:
-                form.save()
-                messages.success(request, "Google Sheet added successfully.")
-                return redirect('index')
-            except IntegrityError:
-                messages.error(request, "Duplicate entry detected. Please check your inputs.")
-        else:
-            messages.error(request, "Failed to add Google Sheet. Please correct the errors below.")
-    else:
-        form = GoogleSheetSourceDataForm()
-
-    return render(request, 'dashboard/add_google_sheet.html', {'form': form})
 
 @csrf_exempt
 def receive_tilt_data(request):
@@ -599,32 +461,46 @@ def calculate_slope(request):
 @require_GET
 @login_required
 def get_inkbird_freeze_data(request):
-    freeze_form = TempGetFreezeForm()
-    freeze_current = freeze_form.temp_reading()
-    freeze_target = freeze_form.set_temp()
+    try:
+        inkbird = InkbirdService(DEVICE_ID2)
 
-    if freeze_form:
+        freeze_current = inkbird.get_temperature()
+        freeze_target = inkbird.get_target_temperature()
+
         return JsonResponse({
-            'freeze_set_temp': freeze_target,
-            'freeze_current_temp': freeze_current,
+            "freeze_set_temp": freeze_target,
+            "freeze_current_temp": freeze_current,
         })
-    else:
-        return JsonResponse({'error': 'No data found'}, status=404)
+
+    except Exception as e:
+        logger.exception("Failed to retrieve keezer Inkbird data.")
+
+        return JsonResponse(
+            {"error": str(e)},
+            status=500
+        )
 
 @require_GET
 @login_required
 def get_inkbird_ferm_data(request):
-    ferm_form = TempGetFermForm()
-    ferm_current = ferm_form.temp_reading()
-    ferm_target = ferm_form.set_temp()
+    try:
+        inkbird = InkbirdService(DEVICE_ID)
 
-    if ferm_form:
+        ferm_current = inkbird.get_temperature()
+        ferm_target = inkbird.get_target_temperature()
+
         return JsonResponse({
-            'ferm_set_temp': ferm_target,
-            'ferm_current_temp': ferm_current,
+            "ferm_set_temp": ferm_target,
+            "ferm_current_temp": ferm_current,
         })
-    else:
-        return JsonResponse({'error': 'No data found'}, status=404)
+
+    except Exception as e:
+        logger.exception("Failed to retrieve fermentation Inkbird data.")
+
+        return JsonResponse(
+            {"error": str(e)},
+            status=500
+        )
 
 @login_required
 def import_tilt_csv(request):

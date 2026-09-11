@@ -1,97 +1,8 @@
 from django import forms
 from datetime import date, timedelta
-from tuya_connector import TuyaOpenAPI
-from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID,DEVICE_ID2
-# import json
-#
-# with open('/etc/secrets/creds.json') as f:
-#     creds = json.load(f)
-#
-# ACCESS_ID = creds['ACCESS_ID']
-# ACCESS_KEY = creds['ACCESS_KEY']
-# ENDPOINT = creds['ENDPOINT']
-# DEVICE_ID = creds['DEVICE_ID']
-# DEVICE_ID2 = creds['DEVICE_ID2']
 
-from django import forms
-from .models import GoogleSheetSourceData, FermentationDataTilt
+from .models import FermentationDataTilt
 from django.contrib.auth.models import User
-
-class TempSetFermForm(forms.Form):
-    temp = forms.FloatField(min_value=0, label="Temperature")
-    openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
-    openapi.connect()
-
-    def set_temp(self, temp):
-        commands = {"commands": [{"code": "temp_set", "value": int(temp * 10)}]}
-
-        data_set_ferm = self.openapi.post(f"/v1.0/iot-03/devices/{DEVICE_ID}/commands", commands)
-
-        # Return response or error details
-        if 'success' in data_set_ferm and data_set_ferm['success']:
-            return f"Temperature set to {temp}°F successfully."
-        else:
-            error_message = data_set_ferm.get('msg', 'Unknown error')
-            return f"Failed to set temperature: {error_message}"
-
-class TempGetFermForm(forms.Form):
-    openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
-    openapi.connect()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._status_data = None  # Internal cache
-
-    def _get_status_data(self):
-        if self._status_data is None:
-            self._status_data = self.openapi.get(f"/v1.0/iot-03/devices/{DEVICE_ID}/status")
-        return self._status_data
-
-    def temp_reading(self):
-        data = self._get_status_data()
-        return data['result'][3]['value'] / 10
-
-    def set_temp(self):
-        data = self._get_status_data()
-        return data['result'][2]['value'] / 10
-
-class TempSetFreezeForm(forms.Form):
-    temp = forms.FloatField(min_value=0, label="Temperature")
-    openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
-    openapi.connect()
-
-    def set_temp(self, temp):
-        commands = {"commands": [{"code": "temp_set", "value": int(temp * 10)}]}
-
-        data_set_freeze = self.openapi.post(f"/v1.0/iot-03/devices/{DEVICE_ID2}/commands", commands)
-
-        # Return response or error details
-        if 'success' in data_set_freeze and data_set_freeze['success']:
-            return f"Temperature set to {temp}°F successfully."
-        else:
-            error_message = data_set_freeze.get('msg', 'Unknown error')
-            return f"Failed to set temperature: {error_message}"
-
-class TempGetFreezeForm(forms.Form):
-    openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
-    openapi.connect()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._status_data = None  # Internal cache
-
-    def _get_status_data(self):
-        if self._status_data is None:
-            self._status_data = self.openapi.get(f"/v1.0/iot-03/devices/{DEVICE_ID2}/status")
-        return self._status_data
-
-    def temp_reading(self):
-        data = self._get_status_data()
-        return data['result'][3]['value'] / 10
-
-    def set_temp(self):
-        data = self._get_status_data()
-        return data['result'][2]['value'] / 10
 
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
@@ -106,6 +17,19 @@ class UserRegistrationForm(forms.ModelForm):
         if cd['password'] != cd['password2']:
             raise forms.ValidationError('Passwords don’t match.')
         return cd['password2']
+
+
+class TempSetFermForm(forms.Form):
+    temp = forms.FloatField(
+        min_value=0,
+        label="Temperature"
+    )
+
+class TempSetFreezeForm(forms.Form):
+    temp = forms.FloatField(
+        min_value=0,
+        label="Temperature"
+    )
 
 class TiltDataSelectForm(forms.Form):
     name = forms.ChoiceField(choices=[], label='Select Batch')
