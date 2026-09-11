@@ -1,28 +1,21 @@
 from django import forms
 from datetime import date, timedelta
 from tuya_connector import TuyaOpenAPI
-# from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID,DEVICE_ID2
-import json
-with open('/etc/secrets/creds.json') as f:
-    creds = json.load(f)
-
-ACCESS_ID = creds['ACCESS_ID']
-ACCESS_KEY = creds['ACCESS_KEY']
-ENDPOINT = creds['ENDPOINT']
-DEVICE_ID = creds['DEVICE_ID']
-DEVICE_ID2 = creds['DEVICE_ID2']
+from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID,DEVICE_ID2
+# import json
+#
+# with open('/etc/secrets/creds.json') as f:
+#     creds = json.load(f)
+#
+# ACCESS_ID = creds['ACCESS_ID']
+# ACCESS_KEY = creds['ACCESS_KEY']
+# ENDPOINT = creds['ENDPOINT']
+# DEVICE_ID = creds['DEVICE_ID']
+# DEVICE_ID2 = creds['DEVICE_ID2']
 
 from django import forms
 from .models import GoogleSheetSourceData, FermentationDataTilt
 from django.contrib.auth.models import User
-
-class DateForm(forms.Form):
-    start = forms.DateField(widget=forms.DateInput(attrs={'type':'date'}))
-    end = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-
-class DateFilterForm(forms.Form):
-    start_date = forms.DateField(required=False, widget=forms.TextInput(attrs={'type': 'date'}))
-    end_date = forms.DateField(required=False, widget=forms.TextInput(attrs={'type': 'date'}))
 
 class TempSetFermForm(forms.Form):
     temp = forms.FloatField(min_value=0, label="Temperature")
