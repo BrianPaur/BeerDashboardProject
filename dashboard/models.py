@@ -19,13 +19,6 @@ class FermentationData(models.Model):
 
     def __str__(self):
         return self.beer
-    
-class GoogleSheetSourceData(models.Model):
-    sourceURL = models.CharField("SourceURL", max_length=250, unique=True)
-    readable_name = models.CharField("Readable Name", max_length=250, unique=True)
-
-    def __str__(self):
-        return f"{self.readable_name} ({self.sourceURL})"
 
 class ProfileDataSelect(models.Model):
     user_profile = models.CharField("user_profile", max_length=250, unique=True)
