@@ -207,51 +207,54 @@ def index(request):
 def receive_tilt_data(request):
     logger.info("Tilt Pi request received")
     logger.info("Method: %s", request.method)
-    logger.info("Headers: %s", dict(request.headers))
 
-    if request.method == 'POST':
-        try:
-            # If JSON data
-            if request.content_type == "application/json":
-                raw = request.body.decode('utf-8')
-                logger.info("Raw JSON body: %s", raw)
-                data = json.loads(raw)
-            else:
-                # If form-encoded (likely what Tilt Pi is sending)
-                data = request.POST
-                logger.info("Form POST keys: %s", list(data.keys()))
-                logger.info("Form POST data: %s", dict(data))
+    if request.method != "POST":
+        return JsonResponse(
+            {"status": "invalid method"},
+            status=405
+        )
 
-            # Extract data safely
-            name = data.get('Beer', 'Unknown')
-            temperature = float(data.get('Temp', 0))
-            gravity = float(data.get('SG', 0))
-            color = data.get('Color', 'Unknown')
-            # time_str = data.get('Time') or data.get('Date')
-            time_str = data.get('formatteddate')
-            comment = data.get('comment','Unknown')
+    try:
+        if request.content_type == "application/json":
+            data = json.loads(request.body.decode("utf-8"))
+        else:
+            data = request.POST
 
-            timestamp = parser.parse(time_str) if time_str else now()
+        name = data.get("Beer", "Unknown")
+        temperature = float(data.get("Temp", 0))
+        gravity = float(data.get("SG", 0))
+        color = data.get("Color", "")
+        comment = data.get("comment", "")
 
-            # Save to DB
-            from .models import FermentationDataTilt
-            FermentationDataTilt.objects.create(
-                name=name,
-                temperature=temperature,
-                gravity=gravity,
-                color=color,
-                timestamp=timestamp,
-                comment=comment
-            )
+        timestamp = TiltService.parse_timestamp(
+            data.get("formatteddate")
+        )
 
-            logger.info("Data saved successfully")
-            return JsonResponse({'status': 'success'})
+        TiltService.save_reading(
+            name=name,
+            temperature=temperature,
+            gravity=gravity,
+            color=color,
+            timestamp=timestamp,
+            comment=comment,
+        )
 
-        except Exception as e:
-            logger.exception("Unexpected error in tilt-data view")
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        logger.info("Tilt data saved successfully")
 
-    return JsonResponse({'status': 'invalid method'}, status=405)
+        return JsonResponse({
+            "status": "success"
+        })
+
+    except Exception as e:
+        logger.exception("Unexpected error in tilt-data view")
+
+        return JsonResponse(
+            {
+                "status": "error",
+                "message": str(e)
+            },
+            status=400
+        )
 
 @csrf_exempt
 def tilt_debug(request):
@@ -270,10 +273,10 @@ def get_latest_tilt_data(request):
 
     if batch_name:
         # Get the latest data for the specified batch
-        latest = FermentationDataTilt.objects.filter(name=batch_name).order_by('-timestamp').first()
+        latest = TiltService.get_latest_reading(batch_name)
     else:
         # Get the latest data overall
-        latest = FermentationDataTilt.objects.order_by('-timestamp').first()
+        latest = TiltService.get_latest_reading()
 
     if latest:
         # Use Django's timezone handling instead of manual adjustment
@@ -283,7 +286,7 @@ def get_latest_tilt_data(request):
         batch_name = latest.name
 
         # Get first (original) and last (current) gravity for this batch
-        batch_data = FermentationDataTilt.objects.filter(name=batch_name).order_by('timestamp')
+        batch_data = TiltService.get_batch_readings(batch_name)
 
         abv = 0  # Default value
         duration = "0 days"  # Default value
