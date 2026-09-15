@@ -88,6 +88,25 @@ class FermentationService:
         ]
 
     @staticmethod
+    def get_active_readings(batch_name):
+        """Return Tilt readings that fall within the active fermentation period."""
+
+        start_time, end_time = (
+            FermentationService.get_fermentation_period(batch_name)
+        )
+
+        if start_time is None or end_time is None:
+            return []
+
+        readings = FermentationService.get_readings(batch_name)
+
+        return [
+            reading
+            for reading in readings
+            if start_time <= reading.timestamp <= end_time
+        ]
+
+    @staticmethod
     def calculate_gravity_slope(batch_name):
         """
         Calculate gravity slope during active fermentation.
@@ -95,32 +114,23 @@ class FermentationService:
         Returns gravity points per day.
         """
 
-        readings = FermentationService.get_gravity_readings(batch_name)
-
-        if len(readings) < 2:
-            return None
-
-        start_time, end_time = (
-            FermentationService.get_fermentation_period(batch_name)
+        active_readings = FermentationService.get_active_readings(
+            batch_name
         )
-
-        if start_time is None or end_time is None:
-            return None
-
-        # Only use readings within the active fermentation period
-        active_readings = [
-            reading
-            for reading in readings
-            if start_time <= reading[0] <= end_time
-        ]
 
         if len(active_readings) < 2:
             return None
 
-        timestamps = [reading[0] for reading in active_readings]
-        gravities = [float(reading[1]) for reading in active_readings]
+        timestamps = [
+            reading.timestamp
+            for reading in active_readings
+        ]
 
-        # Convert timestamps to days since fermentation started
+        gravities = [
+            float(reading.gravity)
+            for reading in active_readings
+        ]
+
         first_time = timestamps[0]
 
         x_data = [
@@ -130,11 +140,9 @@ class FermentationService:
 
         y_data = gravities
 
-        # Calculate means
         x_mean = np.mean(x_data)
         y_mean = np.mean(y_data)
 
-        # Calculate regression slope
         numerator = np.sum(
             (np.array(x_data) - x_mean)
             * (np.array(y_data) - y_mean)
@@ -241,6 +249,17 @@ class FermentationService:
         end_time = timestamps[fermentation_end_index]
 
         return start_time, end_time
+
+    @staticmethod
+    def get_latest_reading(batch_name):
+        """Return the latest Tilt reading for a batch."""
+
+        return (
+            FermentationDataTilt.objects
+            .filter(name=batch_name)
+            .order_by("-timestamp")
+            .first()
+        )
 
     @staticmethod
     def calculate_fermentation_duration(batch_name):

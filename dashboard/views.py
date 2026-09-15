@@ -367,18 +367,17 @@ def calculate_slope(request):
             'slope_raw': 0
         })
 
-    readings = FermentationService.get_gravity_readings(
+    active_readings = FermentationService.get_active_readings(
         batch_name
     )
 
-    active_readings = [
-        reading
-        for reading in readings
-        if start_time <= reading[0] <= end_time
-    ]
+    latest_reading = FermentationService.get_latest_reading(
+        batch_name
+    )
 
     fermentation_complete = (
-        end_time < readings[-1][0]
+            latest_reading is not None
+            and end_time < latest_reading.timestamp
     )
 
     if fermentation_complete:
