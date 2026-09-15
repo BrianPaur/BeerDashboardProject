@@ -1,7 +1,7 @@
 from django import forms
 from datetime import date, timedelta
-
 from .models import FermentationDataTilt
+from .services.tilt import TiltService
 from django.contrib.auth.models import User
 
 class UserRegistrationForm(forms.ModelForm):
@@ -32,13 +32,20 @@ class TempSetFreezeForm(forms.Form):
     )
 
 class TiltDataSelectForm(forms.Form):
-    name = forms.ChoiceField(choices=[], label='Select Batch')
+    name = forms.ChoiceField(
+        choices=[],
+        label="Select Batch"
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Populate the dropdown with distinct batch names
-        batch_names = FermentationDataTilt.objects.values_list('name', flat=True).distinct()
-        self.fields['name'].choices = [(name, name) for name in batch_names if name]
+
+        batch_names = TiltService.get_batch_names()
+
+        self.fields["name"].choices = [
+            (name, name)
+            for name in batch_names
+        ]
 
 class CSVImportForm(forms.Form):
     csv_file = forms.FileField(
