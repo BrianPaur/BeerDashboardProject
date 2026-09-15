@@ -27,6 +27,8 @@ from .forms import (
 )
 
 from .services.inkbird import InkbirdService
+from .services.fermentation import FermentationService
+from .services.tilt import TiltService
 from dashboard.creds.creds import DEVICE_ID, DEVICE_ID2
 
 import schedule
@@ -295,23 +297,23 @@ def get_latest_tilt_data(request):
         if batch_data.exists() and batch_data.count() > 1:
             original_gravity = batch_data.first().gravity
             current_gravity = latest.gravity
-            highest_gravity = batch_data.aggregate(Max('gravity'))
-            lowest_gravity = batch_data.aggregate(Min('gravity'))
+            highest_gravity = batch_data.aggregate(Max('gravity'))['gravity__max']
+            lowest_gravity = batch_data.aggregate(Min('gravity'))['gravity__min']
             # ABV calculation: (OG - FG) * 131.25
-            abv = round((float(highest_gravity['gravity__max']) - float(current_gravity)) * 131.25, 2)
+            abv = FermentationService.calculate_abv(
+                highest_gravity,
+                lowest_gravity,
+            )
 
             # Calculate duration
-            first_timestamp = timezone.localtime(batch_data.first().timestamp)
-            duration_delta = local_time - first_timestamp
+            duration = FermentationService.calculate_fermentation_duration(batch_name)
 
-            # Format duration nicely (e.g., "5 days, 3 hours")
-            days = duration_delta.days
-            hours = duration_delta.seconds // 3600
-            minutes = (duration_delta.seconds % 3600) // 60
-            duration = f"{days}:{hours}:{minutes}"
-
-            apparent_attenuation = round((((float(highest_gravity['gravity__max']) - float(current_gravity)) / (
-                        float(highest_gravity['gravity__max']) - 1)) * 100), 2)
+            apparent_attenuation = (
+                FermentationService.calculate_attenuation(
+                    highest_gravity,
+                    lowest_gravity,
+                )
+            )
 
         return JsonResponse({
             'temperature': latest.temperature,
@@ -320,11 +322,8 @@ def get_latest_tilt_data(request):
             'name': latest.name,
             'abv': f'{abv}%',
             'duration': duration,
-            'highest_gravity': round(float(highest_gravity['gravity__max']), 3) if 'gravity__max' in highest_gravity and
-                                                                                   highest_gravity[
-                                                                                       'gravity__max'] else 0,
-            'lowest_gravity': round(float(lowest_gravity['gravity__min']), 3) if 'gravity__min' in lowest_gravity and
-                                                                                 lowest_gravity['gravity__min'] else 0,
+            'highest_gravity': round(float(highest_gravity), 3) if highest_gravity is not None else None,
+            'lowest_gravity': round(float(lowest_gravity), 3) if lowest_gravity is not None else None,
             'apparent_attenuation': apparent_attenuation
         })
     else:
@@ -335,130 +334,81 @@ def get_latest_tilt_data(request):
 def calculate_slope(request):
     batch_name = request.GET.get('batch', None)
 
-    if batch_name:
-        # Get data for specified batch
-        batch_data = FermentationDataTilt.objects.filter(name=batch_name).order_by('timestamp')
-    else:
-        # Get the latest batch name
-        latest = FermentationDataTilt.objects.order_by('-timestamp').first()
+    if not batch_name:
+        latest = TiltService.get_latest_reading()
+
         if not latest:
-            return JsonResponse({'error': 'No data found'}, status=404)
+            return JsonResponse(
+                {'error': 'No data found'},
+                status=404
+            )
+
         batch_name = latest.name
-        batch_data = FermentationDataTilt.objects.filter(name=batch_name).order_by('timestamp')
 
-    if batch_data.count() < 2:
-        return JsonResponse({'error': 'Not enough data points'}, status=404)
+    slope = FermentationService.calculate_gravity_slope(
+        batch_name
+    )
 
-    # Get all data
-    timestamps = list(batch_data.values_list('timestamp', flat=True))
-    gravities = list(batch_data.values_list('gravity', flat=True))
+    if slope is None:
+        return JsonResponse(
+            {'error': 'Unable to calculate slope'},
+            status=404
+        )
 
-    # Find when fermentation actually starts with sustained drop
-    fermentation_start_index = 0
-    gravity_drop_threshold = 0.002  # Minimum drop to consider
-    consecutive_drops = 5  # Number of consecutive readings showing decline
+    start_time, end_time = (
+        FermentationService.get_fermentation_period(
+            batch_name
+        )
+    )
 
-    # Look for sustained fermentation activity
-    for i in range(len(gravities) - consecutive_drops):
-        # Get the max gravity from the beginning up to this point
-        max_gravity_so_far = max(gravities[:i + 1])
+    if start_time is None or end_time is None:
+        return JsonResponse({
+            'slope': 'Fermentation not started',
+            'slope_raw': 0
+        })
 
-        # Check if we have consecutive drops from this point
-        is_sustained_drop = True
-        for j in range(consecutive_drops):
-            if i + j >= len(gravities):
-                is_sustained_drop = False
-                break
-            # Check if this reading and the next few are consistently lower
-            if float(gravities[i + j]) >= float(max_gravity_so_far) - gravity_drop_threshold:
-                is_sustained_drop = False
-                break
+    readings = FermentationService.get_gravity_readings(
+        batch_name
+    )
 
-        if is_sustained_drop:
-            fermentation_start_index = i
-            break
+    active_readings = [
+        reading
+        for reading in readings
+        if start_time <= reading[0] <= end_time
+    ]
 
-    # Find when fermentation stops (gravity stabilizes)
-    fermentation_end_index = len(gravities) - 1  # Default to last reading
-    stability_threshold = 0.001  # Gravity change threshold for "stable"
-    consecutive_stable = 10  # Number of consecutive stable readings
+    fermentation_complete = (
+        end_time < readings[-1][0]
+    )
 
-    # Look backwards from the end for sustained stability
-    for i in range(len(gravities) - consecutive_stable, fermentation_start_index, -1):
-        is_stable = True
-        # Check if the next consecutive_stable readings are all within threshold
-        for j in range(consecutive_stable - 1):
-            if i + j + 1 >= len(gravities):
-                is_stable = False
-                break
-            gravity_change = abs(float(gravities[i + j]) - float(gravities[i + j + 1]))
-            if gravity_change > stability_threshold:
-                is_stable = False
-                break
-
-        if is_stable:
-            fermentation_end_index = i
-            break
-
-    # Check if fermentation has started
-    if fermentation_start_index == 0:
-        if float(gravities[0]) - float(gravities[-1]) < gravity_drop_threshold:
-            return JsonResponse({
-                'slope': 'Fermentation not started',
-                'slope_raw': 0
-            })
-
-    # Use data from fermentation start to end
-    active_timestamps = timestamps[fermentation_start_index:fermentation_end_index + 1]
-    active_gravities = gravities[fermentation_start_index:fermentation_end_index + 1]
-
-    if len(active_timestamps) < 2:
-        return JsonResponse({'error': 'Not enough active fermentation data'}, status=404)
-
-    # Convert timestamps to DAYS since fermentation start
-    first_time = active_timestamps[0]
-    x_data = np.array([(t - first_time).total_seconds() / 86400 for t in active_timestamps])
-    y_data = np.array([float(g) for g in active_gravities])
-
-    # Calculate means
-    x_mean = np.mean(x_data)
-    y_mean = np.mean(y_data)
-
-    # Calculate slope
-    numerator = np.sum((x_data - x_mean) * (y_data - y_mean))
-    denominator = np.sum((x_data - x_mean) ** 2)
-
-    if denominator == 0:
-        return JsonResponse({'error': 'Cannot calculate slope'}, status=404)
-
-    slope = numerator / denominator
-
-    # Format slope nicely (gravity points per day)
-    slope_formatted = f"{slope:.4f} points/day"
-
-    # Check if fermentation is complete (end_index is not the last reading)
-    fermentation_complete = fermentation_end_index < len(gravities) - 1
-    fermentation_end_time = timezone.localtime(timestamps[fermentation_end_index]).strftime(
-        '%m-%d-%Y %I:%M:%S %p') if fermentation_complete else "Still fermenting"
-
-    # Calculate total fermentation time
     if fermentation_complete:
-        duration_delta = timestamps[fermentation_end_index] - active_timestamps[0]
-        days = duration_delta.days
-        hours = duration_delta.seconds // 3600
-        minutes = (duration_delta.seconds % 3600) // 60
-        fermentation_duration = f"{days}:{hours}:{minutes}"
+        fermentation_end_time = (
+            timezone.localtime(end_time)
+            .strftime('%m-%d-%Y %I:%M:%S %p')
+        )
     else:
-        fermentation_duration = "Still fermenting"
+        fermentation_end_time = "Still fermenting"
+
+    duration = (
+        FermentationService.calculate_duration(
+            start_time,
+            end_time
+        )
+        if fermentation_complete
+        else None
+    )
 
     return JsonResponse({
-        'slope': slope_formatted,
+        'slope': f'{slope:.4f} points/day',
         'slope_raw': float(slope),
-        'fermentation_started_at': timezone.localtime(active_timestamps[0]).strftime('%m-%d-%Y %I:%M:%S %p'),
+        'fermentation_started_at': (
+            timezone.localtime(start_time)
+            .strftime('%m-%d-%Y %I:%M:%S %p')
+        ),
         'fermentation_ended_at': fermentation_end_time,
         'fermentation_complete': fermentation_complete,
-        'fermentation_duration': fermentation_duration,
-        'data_points_used': len(active_gravities)
+        'fermentation_duration': duration,
+        'data_points_used': len(active_readings)
     })
 
 @require_GET
