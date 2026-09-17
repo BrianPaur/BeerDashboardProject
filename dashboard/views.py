@@ -17,18 +17,29 @@ from django.views.decorators.http import require_GET
 from django.db.models import Min, Max
 
 
-from .models import TemperatureData,FermentationData, FermentationDataTilt
+from .models import (
+    TemperatureData,
+    FermentationData,
+    FermentationDataTilt,
+    GoogleSheetSourceData,
+)
+
 from .forms import (
     TempSetFermForm,
     TempSetFreezeForm,
     UserRegistrationForm,
     TiltDataSelectForm,
     CSVImportForm,
+    GoogleSheetURLForm,
+    GoogleSheetSourceDataForm,
+    SelectGoogleSheetForm,
+    DateFilterForm,
 )
 
 from .services.inkbird import InkbirdService
 from .services.fermentation import FermentationService
 from .services.tilt import TiltService
+from .services.imports import ImportService
 from dashboard.creds.creds import DEVICE_ID, DEVICE_ID2
 
 import schedule
@@ -457,66 +468,171 @@ def get_inkbird_ferm_data(request):
 def import_tilt_csv(request):
     if request.method == 'POST':
         form = CSVImportForm(request.POST, request.FILES)
+
         if form.is_valid():
             csv_file = request.FILES['csv_file']
 
-            # Decode the file
-            decoded_file = csv_file.read().decode('utf-8').splitlines()
-            reader = csv.DictReader(decoded_file)
+            results = ImportService.import_tilt_csv(csv_file)
 
-            success_count = 0
-            error_count = 0
-            errors = []
+            success_count = results['success_count']
+            error_count = results['error_count']
+            errors = results['errors']
 
-            for row_num, row in enumerate(reader, start=2):  # Start at 2 because row 1 is header
-                try:
-                    # Handle both old format (name, temperature, gravity...) and new format (Beer, Temp, SG...)
-                    name = row.get('Beer') or row.get('name', 'Unknown')
-                    name = name.strip() if name else 'Unknown'
-
-                    temperature = float(row.get('Temp') or row.get('temperature', 0))
-                    gravity = float(row.get('SG') or row.get('gravity', 0))
-                    color = row.get('Color') or row.get('color', '')
-                    color = color.strip() if color else ''
-
-                    # Handle timestamp - could be 'Time' or 'timestamp'
-                    timestamp_str = row.get('Time') or row.get('timestamp', '')
-                    timestamp_str = timestamp_str.strip() if timestamp_str else ''
-
-                    comment = row.get('Comment') or row.get('comment', '')
-                    comment = comment.strip() if comment else ''
-
-                    # Parse timestamp - handles multiple formats including "1/15/25 1:37:45 PM"
-                    if timestamp_str:
-                        timestamp = parser.parse(timestamp_str)
-                    else:
-                        timestamp = timezone.now()
-
-                    # Create the record
-                    FermentationDataTilt.objects.create(
-                        name=name,
-                        temperature=temperature,
-                        gravity=gravity,
-                        color=color,
-                        timestamp=timestamp,
-                        comment=comment
-                    )
-                    success_count += 1
-
-                except Exception as e:
-                    error_count += 1
-                    errors.append(f"Row {row_num}: {str(e)}")
-
-            # Show results
             if success_count > 0:
-                messages.success(request, f'Successfully imported {success_count} records.')
+                messages.success(
+                    request,
+                    f'Successfully imported {success_count} records.'
+                )
+
             if error_count > 0:
-                messages.warning(request, f'{error_count} rows had errors. See details below.')
-                for error in errors[:10]:  # Show first 10 errors
+                messages.warning(
+                    request,
+                    f'{error_count} rows had errors. '
+                    'See details below.'
+                )
+
+                for error in errors[:10]:
                     messages.error(request, error)
 
             return redirect('import_tilt_csv')
+
     else:
         form = CSVImportForm()
 
-    return render(request, 'dashboard/import_csv.html', {'form': form})
+    return render(
+        request,
+        'dashboard/import_csv.html',
+        {'form': form}
+    )
+
+@login_required
+def update_google_sheet_url(request, pk=None):
+    if pk:
+        # If a primary key is provided, retrieve the existing record
+        sheet_instance = get_object_or_404(GoogleSheetSourceData, pk=pk)
+    else:
+        # Otherwise, create a new instance
+        sheet_instance = None
+
+    if request.method == 'POST':
+        form = GoogleSheetURLForm(request.POST, instance=sheet_instance)
+        if form.is_valid():
+            form.save()  # Save the changes or create a new entry
+            return redirect('update_google_sheet_url')  # Redirect to the same page after saving
+    else:
+        form = GoogleSheetURLForm(instance=sheet_instance)
+
+    # Fetch all entries for display
+    all_sheets = GoogleSheetSourceData.objects.all()
+
+    return render(request, 'dashboard/update_google_sheet_url.html', {
+        'form': form,
+        'all_sheets': all_sheets,
+    })
+
+@login_required
+def delete_google_sheet(request, pk):
+    google_sheet = get_object_or_404(GoogleSheetSourceData, pk=pk)
+
+    if request.method == "POST":
+        readable_name = google_sheet.readable_name
+        google_sheet.delete()
+        messages.success(request, f'Successfully deleted "{readable_name}".')
+        return redirect('update_google_sheet_url')  # Redirect to the index page or another relevant page.
+
+    return render(request, 'dashboard/delete_google_sheet.html', {'google_sheet': google_sheet})
+
+@login_required
+def add_google_sheet_url(request):
+    if request.method == 'POST':
+        form = GoogleSheetSourceDataForm(request.POST)
+        if form.is_valid():
+            try:
+                form.save()
+                messages.success(request, "Google Sheet added successfully.")
+                return redirect('index')
+            except IntegrityError:
+                messages.error(request, "Duplicate entry detected. Please check your inputs.")
+        else:
+            messages.error(request, "Failed to add Google Sheet. Please correct the errors below.")
+    else:
+        form = GoogleSheetSourceDataForm()
+
+    return render(request, 'dashboard/add_google_sheet.html', {'form': form})
+
+@login_required
+def google_sheet_dashboard(request):
+    google_sheet_data = GoogleSheetSourceData.objects.all()
+    df_json = []
+    df_json_sorted = []
+    # Load TemperatureData from the database
+    temperature_data = TemperatureData.objects.all()
+
+    if request.method == 'POST':
+        form = SelectGoogleSheetForm(request.POST)
+        if form.is_valid():
+            selected_sheet = form.cleaned_data['google_sheet_url']
+            selected_url = selected_sheet.sourceURL
+            gc = gspread.service_account(
+                filename='/etc/secrets/credentials.json')
+            sh = gc.open_by_url(selected_url)
+            worksheet = sh.worksheet("Data")
+            list_of_lists = worksheet.get('A2:F2972')
+            df = pd.DataFrame(list_of_lists)
+            df.columns = ['Timestamp', 'Timepoint', 'SG', 'Temp', 'Color', 'Beer']
+            df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+
+            # Handle DateFilterForm
+            date_form = DateFilterForm(request.GET)
+            if date_form.is_valid():
+                start_date = date_form.cleaned_data.get('start_date')
+                end_date = date_form.cleaned_data.get('end_date')
+
+                if start_date:
+                    temperature_data = temperature_data.filter(time_stamp__gte=start_date)
+                    df = df[df['Timestamp'] >= pd.to_datetime(start_date)]
+                if end_date:
+                    temperature_data = temperature_data.filter(time_stamp__lte=end_date)
+                    df = df[df['Timestamp'] <= pd.to_datetime(end_date)]
+
+            # Prepare data for charts
+            data = temperature_data.order_by('time_stamp')
+            latest_temp = temperature_data.order_by('-time_stamp').values_list('current_temp', flat=True).first()
+            df['Timestamp'] = pd.to_datetime(df['Timestamp']).dt.strftime('%Y-%m-%d %H:%M:%S')
+            df_sort = df.sort_values('Timestamp', ascending=False)
+            df_json_sorted = df_sort.to_dict(orient='records')
+            df_json = df.to_dict(orient='records')
+        else:
+            # Handle DateFilterForm
+            date_form = DateFilterForm(request.GET)
+            data = temperature_data.order_by('time_stamp')
+            latest_temp = temperature_data.order_by('-time_stamp').values_list('current_temp', flat=True).first()
+            df_json = []
+            df_json_sorted = []
+    else:
+        # Load TemperatureData from the database
+        temperature_data = TemperatureData.objects.all()
+        # Handle DateFilterForm
+        date_form = DateFilterForm(request.GET)
+        data = temperature_data.order_by('time_stamp')
+        latest_temp = temperature_data.order_by('-time_stamp').values_list('current_temp', flat=True).first()
+        form = SelectGoogleSheetForm()
+
+    # Handle TempSetForm
+    temp_form = TempSetFermForm(request.POST or None)
+    temp_feedback = None
+    if request.method == "POST" and temp_form.is_valid():
+        temp_feedback = temp_form.set_temp(temp_form.cleaned_data['temp'])
+
+    # Render the page
+    return render(request, 'dashboard/google_sheets_dashboard.html', {
+        'data': data,
+        'df_json': df_json,
+        'df_json_sorted':df_json_sorted,
+        'date_form': date_form,
+        'temp_form': temp_form,
+        'temp_feedback': temp_feedback,
+        'latest_temp':latest_temp,
+        'form': form,
+    })
+
