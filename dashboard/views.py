@@ -267,7 +267,6 @@ def tilt_debug(request):
 
     return JsonResponse({'status': 'received', 'method': request.method})
 
-
 @require_GET
 @login_required
 def get_latest_tilt_data(request):
