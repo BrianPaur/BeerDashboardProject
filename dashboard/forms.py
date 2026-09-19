@@ -1,6 +1,4 @@
 from django import forms
-from datetime import date, timedelta
-from .models import FermentationDataTilt
 from .services.tilt import TiltService
 from django.contrib.auth.models import User
 
