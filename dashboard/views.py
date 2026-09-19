@@ -300,9 +300,11 @@ def get_latest_tilt_data(request):
         # Get first (original) and last (current) gravity for this batch
         batch_data = TiltService.get_batch_readings(batch_name)
 
-        abv = 0  # Default value
-        duration = "0 days"  # Default value
+        abv = 0
+        duration = "0 days"
         apparent_attenuation = 0
+        highest_gravity = None
+        lowest_gravity = None
 
         if batch_data.exists() and batch_data.count() > 1:
             original_gravity = batch_data.first().gravity
@@ -381,7 +383,7 @@ def calculate_slope(request):
         batch_name
     )
 
-    latest_reading = FermentationService.get_latest_reading(
+    latest_reading = TiltService.get_latest_reading(
         batch_name
     )
 
@@ -416,7 +418,11 @@ def calculate_slope(request):
         ),
         'fermentation_ended_at': fermentation_end_time,
         'fermentation_complete': fermentation_complete,
-        'fermentation_duration': duration,
+        'fermentation_duration': (
+            str(duration)
+            if duration is not None
+            else None
+        ),
         'data_points_used': len(active_readings)
     })
 
@@ -560,79 +566,5 @@ def add_google_sheet_url(request):
 
     return render(request, 'dashboard/add_google_sheet.html', {'form': form})
 
-@login_required
-def google_sheet_dashboard(request):
-    google_sheet_data = GoogleSheetSourceData.objects.all()
-    df_json = []
-    df_json_sorted = []
-    # Load TemperatureData from the database
-    temperature_data = TemperatureData.objects.all()
 
-    if request.method == 'POST':
-        form = SelectGoogleSheetForm(request.POST)
-        if form.is_valid():
-            selected_sheet = form.cleaned_data['google_sheet_url']
-            selected_url = selected_sheet.sourceURL
-            gc = gspread.service_account(
-                filename='/etc/secrets/credentials.json')
-            sh = gc.open_by_url(selected_url)
-            worksheet = sh.worksheet("Data")
-            list_of_lists = worksheet.get('A2:F2972')
-            df = pd.DataFrame(list_of_lists)
-            df.columns = ['Timestamp', 'Timepoint', 'SG', 'Temp', 'Color', 'Beer']
-            df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-
-            # Handle DateFilterForm
-            date_form = DateFilterForm(request.GET)
-            if date_form.is_valid():
-                start_date = date_form.cleaned_data.get('start_date')
-                end_date = date_form.cleaned_data.get('end_date')
-
-                if start_date:
-                    temperature_data = temperature_data.filter(time_stamp__gte=start_date)
-                    df = df[df['Timestamp'] >= pd.to_datetime(start_date)]
-                if end_date:
-                    temperature_data = temperature_data.filter(time_stamp__lte=end_date)
-                    df = df[df['Timestamp'] <= pd.to_datetime(end_date)]
-
-            # Prepare data for charts
-            data = temperature_data.order_by('time_stamp')
-            latest_temp = temperature_data.order_by('-time_stamp').values_list('current_temp', flat=True).first()
-            df['Timestamp'] = pd.to_datetime(df['Timestamp']).dt.strftime('%Y-%m-%d %H:%M:%S')
-            df_sort = df.sort_values('Timestamp', ascending=False)
-            df_json_sorted = df_sort.to_dict(orient='records')
-            df_json = df.to_dict(orient='records')
-        else:
-            # Handle DateFilterForm
-            date_form = DateFilterForm(request.GET)
-            data = temperature_data.order_by('time_stamp')
-            latest_temp = temperature_data.order_by('-time_stamp').values_list('current_temp', flat=True).first()
-            df_json = []
-            df_json_sorted = []
-    else:
-        # Load TemperatureData from the database
-        temperature_data = TemperatureData.objects.all()
-        # Handle DateFilterForm
-        date_form = DateFilterForm(request.GET)
-        data = temperature_data.order_by('time_stamp')
-        latest_temp = temperature_data.order_by('-time_stamp').values_list('current_temp', flat=True).first()
-        form = SelectGoogleSheetForm()
-
-    # Handle TempSetForm
-    temp_form = TempSetFermForm(request.POST or None)
-    temp_feedback = None
-    if request.method == "POST" and temp_form.is_valid():
-        temp_feedback = temp_form.set_temp(temp_form.cleaned_data['temp'])
-
-    # Render the page
-    return render(request, 'dashboard/google_sheets_dashboard.html', {
-        'data': data,
-        'df_json': df_json,
-        'df_json_sorted':df_json_sorted,
-        'date_form': date_form,
-        'temp_form': temp_form,
-        'temp_feedback': temp_feedback,
-        'latest_temp':latest_temp,
-        'form': form,
-    })
 
