@@ -27,12 +27,12 @@ from .services.fermentation import FermentationService
 from .services.tilt import TiltService
 from .services.imports import ImportService
 
+
+import json
 with open('/etc/secrets/creds.json') as f:
     creds = json.load(f)
 DEVICE_ID = creds['DEVICE_ID']
 DEVICE_ID2 = creds['DEVICE_ID2']
-
-import json
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
