@@ -21,8 +21,7 @@ from .models import (
     TemperatureData,
     FermentationData,
     FermentationDataTilt,
-    GoogleSheetSourceData,
-)
+    )
 
 from .forms import (
     TempSetFermForm,
@@ -30,9 +29,6 @@ from .forms import (
     UserRegistrationForm,
     TiltDataSelectForm,
     CSVImportForm,
-    GoogleSheetURLForm,
-    GoogleSheetSourceDataForm,
-    SelectGoogleSheetForm,
     DateFilterForm,
 )
 
@@ -510,61 +506,6 @@ def import_tilt_csv(request):
         'dashboard/import_csv.html',
         {'form': form}
     )
-
-@login_required
-def update_google_sheet_url(request, pk=None):
-    if pk:
-        # If a primary key is provided, retrieve the existing record
-        sheet_instance = get_object_or_404(GoogleSheetSourceData, pk=pk)
-    else:
-        # Otherwise, create a new instance
-        sheet_instance = None
-
-    if request.method == 'POST':
-        form = GoogleSheetURLForm(request.POST, instance=sheet_instance)
-        if form.is_valid():
-            form.save()  # Save the changes or create a new entry
-            return redirect('update_google_sheet_url')  # Redirect to the same page after saving
-    else:
-        form = GoogleSheetURLForm(instance=sheet_instance)
-
-    # Fetch all entries for display
-    all_sheets = GoogleSheetSourceData.objects.all()
-
-    return render(request, 'dashboard/update_google_sheet_url.html', {
-        'form': form,
-        'all_sheets': all_sheets,
-    })
-
-@login_required
-def delete_google_sheet(request, pk):
-    google_sheet = get_object_or_404(GoogleSheetSourceData, pk=pk)
-
-    if request.method == "POST":
-        readable_name = google_sheet.readable_name
-        google_sheet.delete()
-        messages.success(request, f'Successfully deleted "{readable_name}".')
-        return redirect('update_google_sheet_url')  # Redirect to the index page or another relevant page.
-
-    return render(request, 'dashboard/delete_google_sheet.html', {'google_sheet': google_sheet})
-
-@login_required
-def add_google_sheet_url(request):
-    if request.method == 'POST':
-        form = GoogleSheetSourceDataForm(request.POST)
-        if form.is_valid():
-            try:
-                form.save()
-                messages.success(request, "Google Sheet added successfully.")
-                return redirect('index')
-            except IntegrityError:
-                messages.error(request, "Duplicate entry detected. Please check your inputs.")
-        else:
-            messages.error(request, "Failed to add Google Sheet. Please correct the errors below.")
-    else:
-        form = GoogleSheetSourceDataForm()
-
-    return render(request, 'dashboard/add_google_sheet.html', {'form': form})
 
 
 
