@@ -56,7 +56,3 @@ class CSVImportForm(forms.Form):
         if not file.name.endswith('.csv'):
             raise forms.ValidationError('File must be a CSV')
         return file
-
-class DateFilterForm(forms.Form):
-    start_date = forms.DateField(required=False, widget=forms.TextInput(attrs={'type': 'date'}))
-    end_date = forms.DateField(required=False, widget=forms.TextInput(attrs={'type': 'date'}))

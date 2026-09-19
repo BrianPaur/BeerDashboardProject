@@ -1,39 +1,39 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-import datetime
-import requests
-from django.utils.timezone import now
+from django.utils import timezone
+
 from .models import TemperatureData
+from .services.inkbird import InkbirdService
+from dashboard.creds.creds import DEVICE_ID
 
-from tuya_connector import TuyaOpenAPI
-# from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID
-
-import json
-with open('/etc/secrets/creds.json') as f:
-    creds = json.load(f)
-
-ACCESS_ID = creds['ACCESS_ID']
-ACCESS_KEY = creds['ACCESS_KEY']
-ENDPOINT = creds['ENDPOINT']
-DEVICE_ID = creds['DEVICE_ID']
 
 def data_update():
-    openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
-    connection = openapi.connect()
+    """
+    Retrieve the current Inkbird temperature data and save
+    a historical reading to the database.
+    """
+    try:
+        inkbird = InkbirdService(DEVICE_ID)
 
-    data = openapi.get(F"/v1.0/iot-03/devices/{DEVICE_ID}/status")
-    if data['msg'] == 'No permissions. Your subscription to cloud development plan has expired.':
-        return data['msg']
-    else:
-        temp_data = TemperatureData(
-            time_stamp=datetime.datetime.now(),
-            current_temp=data['result'][3]['value'] / 10,
-            set_temp=data['result'][2]['value'] / 10,
+        current_temp = inkbird.get_temperature()
+        set_temp = inkbird.get_target_temperature()
+
+        TemperatureData.objects.create(
+            time_stamp=timezone.now(),
+            current_temp=current_temp,
+            set_temp=set_temp,
         )
-        temp_data.save()
+
+    except Exception as exc:
+        print(f"Unable to save Inkbird temperature data: {exc}")
 
 
 def start_data_update():
     scheduler = BackgroundScheduler()
-    scheduler.add_job(data_update, 'interval', minutes=15)
+
+    scheduler.add_job(
+        data_update,
+        "interval",
+        minutes=15,
+    )
+
     scheduler.start()
-    

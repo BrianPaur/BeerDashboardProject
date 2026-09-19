@@ -1,16 +1,9 @@
-from tempfile import template
-
-from django.http import HttpResponse
 from django.utils import timezone
-from django.utils.timezone import now
-from django.shortcuts import render, redirect, get_object_or_404
-from django.template import loader
-from django.views.generic import ListView
+from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import logging
 from django.contrib import messages
-from django.db import IntegrityError
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET
@@ -18,8 +11,6 @@ from django.db.models import Min, Max
 
 
 from .models import (
-    TemperatureData,
-    FermentationData,
     FermentationDataTilt,
     )
 
@@ -29,7 +20,6 @@ from .forms import (
     UserRegistrationForm,
     TiltDataSelectForm,
     CSVImportForm,
-    DateFilterForm,
 )
 
 from .services.inkbird import InkbirdService
@@ -38,22 +28,10 @@ from .services.tilt import TiltService
 from .services.imports import ImportService
 from dashboard.creds.creds import DEVICE_ID, DEVICE_ID2
 
-import schedule
-import time
 import json
 
-from datetime import datetime, timedelta
-
-import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import numpy as np
-from decimal import Decimal
-import csv
-from dateutil import parser
-
-import gspread
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
