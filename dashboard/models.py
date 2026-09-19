@@ -1,7 +1,3 @@
-from datetime import datetime
-from xmlrpc.client import boolean
-
-from django.conf.locale.ar.formats import DATE_FORMAT
 from django.db import models
 
 class TemperatureData(models.Model):
@@ -19,20 +15,6 @@ class FermentationData(models.Model):
 
     def __str__(self):
         return self.beer
-    
-class GoogleSheetSourceData(models.Model):
-    sourceURL = models.CharField("SourceURL", max_length=250, unique=True)
-    readable_name = models.CharField("Readable Name", max_length=250, unique=True)
-
-    def __str__(self):
-        return f"{self.readable_name} ({self.sourceURL})"
-
-class ProfileDataSelect(models.Model):
-    user_profile = models.CharField("user_profile", max_length=250, unique=True)
-    selected_google_sheet = models.CharField("Readable Name", max_length=250, unique=True)
-
-    def __str__(self):
-        return f"{self.user_profile} ({self.selected_google_sheet})"
 
 class FermentationDataTilt(models.Model):
     name = models.CharField(max_length=50)

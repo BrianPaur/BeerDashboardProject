@@ -1,42 +1,37 @@
-from tempfile import template
-
-from django.http import HttpResponse
 from django.utils import timezone
-from django.utils.timezone import now
-from django.shortcuts import render, redirect, get_object_or_404
-from django.template import loader
-from django.views.generic import ListView
+from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import logging
 from django.contrib import messages
-from django.db import IntegrityError
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET
 from django.db.models import Min, Max
 
 
-from .models import TemperatureData,FermentationData, GoogleSheetSourceData, ProfileDataSelect, FermentationDataTilt
-from .forms import DateForm, DateFilterForm, TempSetFermForm, TempSetFreezeForm, GoogleSheetURLForm, SelectGoogleSheetForm, UserRegistrationForm, TiltDataSelectForm , TempGetFreezeForm, TempGetFermForm, CSVImportForm
+from .models import (
+    FermentationDataTilt,
+    )
 
+from .forms import (
+    TempSetFermForm,
+    TempSetFreezeForm,
+    UserRegistrationForm,
+    TiltDataSelectForm,
+    CSVImportForm,
+)
 
-import schedule
-import time
+from .services.inkbird import InkbirdService
+from .services.fermentation import FermentationService
+from .services.tilt import TiltService
+from .services.imports import ImportService
+from dashboard.creds.creds import DEVICE_ID, DEVICE_ID2
+
 import json
 
-from datetime import datetime, timedelta
-
-import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import numpy as np
-from decimal import Decimal
-import csv
-from dateutil import parser
-
-import gspread
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -55,48 +50,98 @@ def register(request):
 
 @login_required
 def index(request):
+    ferm_inkbird = InkbirdService(DEVICE_ID)
+    freeze_inkbird = InkbirdService(DEVICE_ID2)
 
-    # Handle TempSetForm
-    ferm_form = TempSetFermForm(request.POST or None, prefix="ferm")
-    freeze_form = TempSetFreezeForm(request.POST or None, prefix="freeze")
+    ferm_form = TempSetFermForm(
+        request.POST or None,
+        prefix="ferm"
+    )
+
+    freeze_form = TempSetFreezeForm(
+        request.POST or None,
+        prefix="freeze"
+    )
 
     ferm_feedback = None
     freeze_feedback = None
 
     if request.method == "POST":
-        if 'ferm-temp-submit' in request.POST and ferm_form.is_valid():
-            ferm_feedback = ferm_form.set_temp(ferm_form.cleaned_data['temp'])
-        elif 'freeze-temp-submit' in request.POST and freeze_form.is_valid():
-            freeze_feedback = freeze_form.set_temp(freeze_form.cleaned_data['temp'])
 
-    # Handle getting current temps
+        if "ferm-temp-submit" in request.POST:
+            if ferm_form.is_valid():
 
-    # current_ferm_temp = TempGetFermForm(request.GET or None, prefix="c_ferm")
-    # current_freeze_temp = TempGetFreezeForm(request.GET or None, prefix="c_freeze")
+                try:
+                    temperature = ferm_form.cleaned_data["temp"]
 
-    # Handle tilt batch select
+                    ferm_inkbird.set_temperature(temperature)
+
+                    ferm_feedback = (
+                        f"Temperature set to {temperature}°F successfully."
+                    )
+
+                except Exception as e:
+                    ferm_feedback = f"Failed to set temperature: {e}"
+
+        elif "freeze-temp-submit" in request.POST:
+            if freeze_form.is_valid():
+
+                try:
+                    temperature = freeze_form.cleaned_data["temp"]
+
+                    freeze_inkbird.set_temperature(temperature)
+
+                    freeze_feedback = (
+                        f"Temperature set to {temperature}°F successfully."
+                    )
+
+                except Exception as e:
+                    freeze_feedback = f"Failed to set temperature: {e}"
+
+    # Handle Tilt batch select
     tilt_form = TiltDataSelectForm(request.POST or None)
-    tilt_data = FermentationDataTilt.objects.none()  # Default to empty queryset
+
+    tilt_data = FermentationDataTilt.objects.none()
     tilt_batch_name = None
     tilt_chart_html = None
 
     if request.method == "POST" and tilt_form.is_valid():
-        tilt_batch_name = tilt_form.cleaned_data['name']
-        tilt_data = FermentationDataTilt.objects.filter(name=tilt_batch_name).order_by('-timestamp')
+
+        tilt_batch_name = tilt_form.cleaned_data["name"]
+
+        tilt_data = (
+            FermentationDataTilt.objects
+            .filter(name=tilt_batch_name)
+            .order_by("-timestamp")
+        )
 
         if tilt_data.exists():
+
             timestamps = [entry.timestamp for entry in tilt_data]
             temps = [entry.temperature for entry in tilt_data]
             gravities = [entry.gravity for entry in tilt_data]
 
-            fig = make_subplots(specs=[[{"secondary_y": True}]])
+            fig = make_subplots(
+                specs=[[{"secondary_y": True}]]
+            )
 
             fig.add_trace(
-                go.Scatter(x=timestamps, y=temps, name="Temperature (°F)", line=dict(color='red')),
+                go.Scatter(
+                    x=timestamps,
+                    y=temps,
+                    name="Temperature (°F)",
+                    line=dict(color="red")
+                ),
                 secondary_y=False,
             )
+
             fig.add_trace(
-                go.Scatter(x=timestamps, y=gravities, name="Gravity", line=dict(color='blue')),
+                go.Scatter(
+                    x=timestamps,
+                    y=gravities,
+                    name="Gravity",
+                    line=dict(color="blue")
+                ),
                 secondary_y=True,
             )
 
@@ -107,289 +152,96 @@ def index(request):
                 legend=dict(x=0.01, y=0.99),
                 height=400,
                 autosize=True,
-                margin=dict(l=60, r=60, t=80, b=60)
+                margin=dict(
+                    l=60,
+                    r=60,
+                    t=80,
+                    b=60
+                )
             )
 
-            fig.update_yaxes(title_text="Gravity", secondary_y=True)
+            fig.update_yaxes(
+                title_text="Gravity",
+                secondary_y=True
+            )
 
             tilt_chart_html = fig.to_html(
                 full_html=False,
                 config={
-                    'responsive': True,
-                    'displayModeBar': True,
-                    'displaylogo': False
+                    "responsive": True,
+                    "displayModeBar": True,
+                    "displaylogo": False
                 },
-                div_id='tilt-chart'  # Give it an ID
+                div_id="tilt-chart"
             )
 
-    # Render the page
-    return render(request, 'dashboard/index.html', {
-        'ferm_form': ferm_form,
-        'freeze_form': freeze_form,
-        'ferm_feedback': ferm_feedback,
-        'freeze_feedback': freeze_feedback,
-        'tilt_form': tilt_form,
-        'tilt_data': tilt_data,
-        'tilt_batch_name': tilt_batch_name,
-        'tilt_chart_html': tilt_chart_html,
-        # 'current_ferm_temp':current_ferm_temp,
-        # 'current_freeze_temp':current_freeze_temp,
-    })
-
-@login_required
-def google_sheet_dashboard(request):
-    google_sheet_data = GoogleSheetSourceData.objects.all()
-    df_json = []
-    df_json_sorted = []
-    # Load TemperatureData from the database
-    temperature_data = TemperatureData.objects.all()
-
-    if request.method == 'POST':
-        form = SelectGoogleSheetForm(request.POST)
-        if form.is_valid():
-            selected_sheet = form.cleaned_data['google_sheet_url']
-            selected_url = selected_sheet.sourceURL
-            gc = gspread.service_account(
-                filename='/etc/secrets/credentials.json')
-            sh = gc.open_by_url(selected_url)
-            worksheet = sh.worksheet("Data")
-            list_of_lists = worksheet.get('A2:F2972')
-            df = pd.DataFrame(list_of_lists)
-            df.columns = ['Timestamp', 'Timepoint', 'SG', 'Temp', 'Color', 'Beer']
-            df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-
-            # Handle DateFilterForm
-            date_form = DateFilterForm(request.GET)
-            if date_form.is_valid():
-                start_date = date_form.cleaned_data.get('start_date')
-                end_date = date_form.cleaned_data.get('end_date')
-
-                if start_date:
-                    temperature_data = temperature_data.filter(time_stamp__gte=start_date)
-                    df = df[df['Timestamp'] >= pd.to_datetime(start_date)]
-                if end_date:
-                    temperature_data = temperature_data.filter(time_stamp__lte=end_date)
-                    df = df[df['Timestamp'] <= pd.to_datetime(end_date)]
-
-            # Prepare data for charts
-            data = temperature_data.order_by('time_stamp')
-            latest_temp = temperature_data.order_by('-time_stamp').values_list('current_temp', flat=True).first()
-            df['Timestamp'] = pd.to_datetime(df['Timestamp']).dt.strftime('%Y-%m-%d %H:%M:%S')
-            df_sort = df.sort_values('Timestamp', ascending=False)
-            df_json_sorted = df_sort.to_dict(orient='records')
-            df_json = df.to_dict(orient='records')
-        else:
-            # Handle DateFilterForm
-            date_form = DateFilterForm(request.GET)
-            data = temperature_data.order_by('time_stamp')
-            latest_temp = temperature_data.order_by('-time_stamp').values_list('current_temp', flat=True).first()
-            df_json = []
-            df_json_sorted = []
-    else:
-        # Load TemperatureData from the database
-        temperature_data = TemperatureData.objects.all()
-        # Handle DateFilterForm
-        date_form = DateFilterForm(request.GET)
-        data = temperature_data.order_by('time_stamp')
-        latest_temp = temperature_data.order_by('-time_stamp').values_list('current_temp', flat=True).first()
-        form = SelectGoogleSheetForm()
-
-    # Handle TempSetForm
-    temp_form = TempSetFermForm(request.POST or None)
-    temp_feedback = None
-    if request.method == "POST" and temp_form.is_valid():
-        temp_feedback = temp_form.set_temp(temp_form.cleaned_data['temp'])
-
-    # Render the page
-    return render(request, 'dashboard/google_sheets_dashboard.html', {
-        'data': data,
-        'df_json': df_json,
-        'df_json_sorted':df_json_sorted,
-        'date_form': date_form,
-        'temp_form': temp_form,
-        'temp_feedback': temp_feedback,
-        'latest_temp':latest_temp,
-        'form': form,
-    })
-
-@login_required
-def historical_data(request):
-    start = request.GET.get('start')
-    end = request.GET.get('end')
-
-    all_data = TemperatureData.objects.order_by("-time_stamp")
-
-    if start:
-        all_data = all_data.filter(time_stamp__gte=start)
-    if end:
-        all_data = all_data.filter(time_stamp__lte=end)
-
-    fig = px.line(
-        x=[c.time_stamp for c in all_data],
-        y=[[c.current_temp for c in all_data],[c.set_temp for c in all_data]],
-        title="Historical Temperature",
-        labels={'x':"Time Stamp",'y':"Temperature"}
+    return render(
+        request,
+        "dashboard/index.html",
+        {
+            "ferm_form": ferm_form,
+            "freeze_form": freeze_form,
+            "ferm_feedback": ferm_feedback,
+            "freeze_feedback": freeze_feedback,
+            "tilt_form": tilt_form,
+            "tilt_data": tilt_data,
+            "tilt_batch_name": tilt_batch_name,
+            "tilt_chart_html": tilt_chart_html,
+        }
     )
-
-    fig.update_layout(title={
-        'font_size':22,
-        'xanchor':'center',
-        'x':0.5
-    })
-
-    chart = fig.to_html()
-
-    context = {"chart": chart, 'form':DateForm(), 'all_data':all_data }
-    return render(request, "dashboard/historical.html", context)
-
-@login_required
-def dashboard_view(request):
-    # Get filter parameters from the request
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-
-    # Filter data based on the provided dates
-    temperature_data = TemperatureData.objects.all()
-
-    if start_date:
-        data = temperature_data.filter(time_stamp__gte=start_date)
-    if end_date:
-        data = temperature_data.filter(time_stamp__lte=end_date)
-
-    data = temperature_data.order_by('time_stamp')  # Ensure data is ordered by timestamp
-
-    fermentation_data = FermentationData.objects.all()
-
-    return render(request, 'dashboard/dashboard_view.html', {
-        'data': data,
-        'fermentation_data': fermentation_data,
-        'request': request,  # Pass request object to use GET parameters in the form
-    })
-
-@login_required
-def dashboard_view_dark(request):
-    # Get filter parameters from the request
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
-
-    # Filter data based on the provided dates
-    data = TemperatureData.objects.all()
-    if start_date:
-        data = data.filter(time_stamp__gte=start_date)
-    if end_date:
-        data = data.filter(time_stamp__lte=end_date)
-
-    data = data.order_by('time_stamp')  # Ensure data is ordered by timestamp
-
-    return render(request, 'dashboard/dashboard_view_dark.html', {
-        'data': data,
-        'request': request,  # Pass request object to use GET parameters in the form
-    })
-
-@login_required
-def update_google_sheet_url(request, pk=None):
-    if pk:
-        # If a primary key is provided, retrieve the existing record
-        sheet_instance = get_object_or_404(GoogleSheetSourceData, pk=pk)
-    else:
-        # Otherwise, create a new instance
-        sheet_instance = None
-
-    if request.method == 'POST':
-        form = GoogleSheetURLForm(request.POST, instance=sheet_instance)
-        if form.is_valid():
-            form.save()  # Save the changes or create a new entry
-            return redirect('update_google_sheet_url')  # Redirect to the same page after saving
-    else:
-        form = GoogleSheetURLForm(instance=sheet_instance)
-
-    # Fetch all entries for display
-    all_sheets = GoogleSheetSourceData.objects.all()
-
-    return render(request, 'dashboard/update_google_sheet_url.html', {
-        'form': form,
-        'all_sheets': all_sheets,
-    })
-
-@login_required
-def delete_google_sheet(request, pk):
-    google_sheet = get_object_or_404(GoogleSheetSourceData, pk=pk)
-
-    if request.method == "POST":
-        readable_name = google_sheet.readable_name
-        google_sheet.delete()
-        messages.success(request, f'Successfully deleted "{readable_name}".')
-        return redirect('update_google_sheet_url')  # Redirect to the index page or another relevant page.
-
-    return render(request, 'dashboard/delete_google_sheet.html', {'google_sheet': google_sheet})
-
-@login_required
-def add_google_sheet_url(request):
-    if request.method == 'POST':
-        form = GoogleSheetSourceDataForm(request.POST)
-        if form.is_valid():
-            try:
-                form.save()
-                messages.success(request, "Google Sheet added successfully.")
-                return redirect('index')
-            except IntegrityError:
-                messages.error(request, "Duplicate entry detected. Please check your inputs.")
-        else:
-            messages.error(request, "Failed to add Google Sheet. Please correct the errors below.")
-    else:
-        form = GoogleSheetSourceDataForm()
-
-    return render(request, 'dashboard/add_google_sheet.html', {'form': form})
 
 @csrf_exempt
 def receive_tilt_data(request):
     logger.info("Tilt Pi request received")
     logger.info("Method: %s", request.method)
-    logger.info("Headers: %s", dict(request.headers))
 
-    if request.method == 'POST':
-        try:
-            # If JSON data
-            if request.content_type == "application/json":
-                raw = request.body.decode('utf-8')
-                logger.info("Raw JSON body: %s", raw)
-                data = json.loads(raw)
-            else:
-                # If form-encoded (likely what Tilt Pi is sending)
-                data = request.POST
-                logger.info("Form POST keys: %s", list(data.keys()))
-                logger.info("Form POST data: %s", dict(data))
+    if request.method != "POST":
+        return JsonResponse(
+            {"status": "invalid method"},
+            status=405
+        )
 
-            # Extract data safely
-            name = data.get('Beer', 'Unknown')
-            temperature = float(data.get('Temp', 0))
-            gravity = float(data.get('SG', 0))
-            color = data.get('Color', 'Unknown')
-            # time_str = data.get('Time') or data.get('Date')
-            time_str = data.get('formatteddate')
-            comment = data.get('comment','Unknown')
+    try:
+        if request.content_type == "application/json":
+            data = json.loads(request.body.decode("utf-8"))
+        else:
+            data = request.POST
 
-            timestamp = parser.parse(time_str) if time_str else now()
+        name = data.get("Beer", "Unknown")
+        temperature = float(data.get("Temp", 0))
+        gravity = float(data.get("SG", 0))
+        color = data.get("Color", "")
+        comment = data.get("comment", "")
 
-            # Save to DB
-            from .models import FermentationDataTilt
-            FermentationDataTilt.objects.create(
-                name=name,
-                temperature=temperature,
-                gravity=gravity,
-                color=color,
-                timestamp=timestamp,
-                comment=comment
-            )
+        timestamp = TiltService.parse_timestamp(
+            data.get("formatteddate")
+        )
 
-            logger.info("Data saved successfully")
-            return JsonResponse({'status': 'success'})
+        TiltService.save_reading(
+            name=name,
+            temperature=temperature,
+            gravity=gravity,
+            color=color,
+            timestamp=timestamp,
+            comment=comment,
+        )
 
-        except Exception as e:
-            logger.exception("Unexpected error in tilt-data view")
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        logger.info("Tilt data saved successfully")
 
-    return JsonResponse({'status': 'invalid method'}, status=405)
+        return JsonResponse({
+            "status": "success"
+        })
+
+    except Exception as e:
+        logger.exception("Unexpected error in tilt-data view")
+
+        return JsonResponse(
+            {
+                "status": "error",
+                "message": str(e)
+            },
+            status=400
+        )
 
 @csrf_exempt
 def tilt_debug(request):
@@ -400,7 +252,6 @@ def tilt_debug(request):
 
     return JsonResponse({'status': 'received', 'method': request.method})
 
-
 @require_GET
 @login_required
 def get_latest_tilt_data(request):
@@ -408,10 +259,10 @@ def get_latest_tilt_data(request):
 
     if batch_name:
         # Get the latest data for the specified batch
-        latest = FermentationDataTilt.objects.filter(name=batch_name).order_by('-timestamp').first()
+        latest = TiltService.get_latest_reading(batch_name)
     else:
         # Get the latest data overall
-        latest = FermentationDataTilt.objects.order_by('-timestamp').first()
+        latest = TiltService.get_latest_reading()
 
     if latest:
         # Use Django's timezone handling instead of manual adjustment
@@ -421,32 +272,34 @@ def get_latest_tilt_data(request):
         batch_name = latest.name
 
         # Get first (original) and last (current) gravity for this batch
-        batch_data = FermentationDataTilt.objects.filter(name=batch_name).order_by('timestamp')
+        batch_data = TiltService.get_batch_readings(batch_name)
 
-        abv = 0  # Default value
-        duration = "0 days"  # Default value
+        abv = 0
+        duration = "0 days"
         apparent_attenuation = 0
+        highest_gravity = None
+        lowest_gravity = None
 
         if batch_data.exists() and batch_data.count() > 1:
             original_gravity = batch_data.first().gravity
             current_gravity = latest.gravity
-            highest_gravity = batch_data.aggregate(Max('gravity'))
-            lowest_gravity = batch_data.aggregate(Min('gravity'))
+            highest_gravity = batch_data.aggregate(Max('gravity'))['gravity__max']
+            lowest_gravity = batch_data.aggregate(Min('gravity'))['gravity__min']
             # ABV calculation: (OG - FG) * 131.25
-            abv = round((float(highest_gravity['gravity__max']) - float(current_gravity)) * 131.25, 2)
+            abv = FermentationService.calculate_abv(
+                highest_gravity,
+                lowest_gravity,
+            )
 
             # Calculate duration
-            first_timestamp = timezone.localtime(batch_data.first().timestamp)
-            duration_delta = local_time - first_timestamp
+            duration = FermentationService.calculate_fermentation_duration(batch_name)
 
-            # Format duration nicely (e.g., "5 days, 3 hours")
-            days = duration_delta.days
-            hours = duration_delta.seconds // 3600
-            minutes = (duration_delta.seconds % 3600) // 60
-            duration = f"{days}:{hours}:{minutes}"
-
-            apparent_attenuation = round((((float(highest_gravity['gravity__max']) - float(current_gravity)) / (
-                        float(highest_gravity['gravity__max']) - 1)) * 100), 2)
+            apparent_attenuation = (
+                FermentationService.calculate_attenuation(
+                    highest_gravity,
+                    lowest_gravity,
+                )
+            )
 
         return JsonResponse({
             'temperature': latest.temperature,
@@ -455,11 +308,8 @@ def get_latest_tilt_data(request):
             'name': latest.name,
             'abv': f'{abv}%',
             'duration': duration,
-            'highest_gravity': round(float(highest_gravity['gravity__max']), 3) if 'gravity__max' in highest_gravity and
-                                                                                   highest_gravity[
-                                                                                       'gravity__max'] else 0,
-            'lowest_gravity': round(float(lowest_gravity['gravity__min']), 3) if 'gravity__min' in lowest_gravity and
-                                                                                 lowest_gravity['gravity__min'] else 0,
+            'highest_gravity': round(float(highest_gravity), 3) if highest_gravity is not None else None,
+            'lowest_gravity': round(float(lowest_gravity), 3) if lowest_gravity is not None else None,
             'apparent_attenuation': apparent_attenuation
         })
     else:
@@ -470,226 +320,170 @@ def get_latest_tilt_data(request):
 def calculate_slope(request):
     batch_name = request.GET.get('batch', None)
 
-    if batch_name:
-        # Get data for specified batch
-        batch_data = FermentationDataTilt.objects.filter(name=batch_name).order_by('timestamp')
-    else:
-        # Get the latest batch name
-        latest = FermentationDataTilt.objects.order_by('-timestamp').first()
+    if not batch_name:
+        latest = TiltService.get_latest_reading()
+
         if not latest:
-            return JsonResponse({'error': 'No data found'}, status=404)
+            return JsonResponse(
+                {'error': 'No data found'},
+                status=404
+            )
+
         batch_name = latest.name
-        batch_data = FermentationDataTilt.objects.filter(name=batch_name).order_by('timestamp')
 
-    if batch_data.count() < 2:
-        return JsonResponse({'error': 'Not enough data points'}, status=404)
+    slope = FermentationService.calculate_gravity_slope(
+        batch_name
+    )
 
-    # Get all data
-    timestamps = list(batch_data.values_list('timestamp', flat=True))
-    gravities = list(batch_data.values_list('gravity', flat=True))
+    if slope is None:
+        return JsonResponse(
+            {'error': 'Unable to calculate slope'},
+            status=404
+        )
 
-    # Find when fermentation actually starts with sustained drop
-    fermentation_start_index = 0
-    gravity_drop_threshold = 0.002  # Minimum drop to consider
-    consecutive_drops = 5  # Number of consecutive readings showing decline
+    start_time, end_time = (
+        FermentationService.get_fermentation_period(
+            batch_name
+        )
+    )
 
-    # Look for sustained fermentation activity
-    for i in range(len(gravities) - consecutive_drops):
-        # Get the max gravity from the beginning up to this point
-        max_gravity_so_far = max(gravities[:i + 1])
+    if start_time is None or end_time is None:
+        return JsonResponse({
+            'slope': 'Fermentation not started',
+            'slope_raw': 0
+        })
 
-        # Check if we have consecutive drops from this point
-        is_sustained_drop = True
-        for j in range(consecutive_drops):
-            if i + j >= len(gravities):
-                is_sustained_drop = False
-                break
-            # Check if this reading and the next few are consistently lower
-            if float(gravities[i + j]) >= float(max_gravity_so_far) - gravity_drop_threshold:
-                is_sustained_drop = False
-                break
+    active_readings = FermentationService.get_active_readings(
+        batch_name
+    )
 
-        if is_sustained_drop:
-            fermentation_start_index = i
-            break
+    latest_reading = TiltService.get_latest_reading(
+        batch_name
+    )
 
-    # Find when fermentation stops (gravity stabilizes)
-    fermentation_end_index = len(gravities) - 1  # Default to last reading
-    stability_threshold = 0.001  # Gravity change threshold for "stable"
-    consecutive_stable = 10  # Number of consecutive stable readings
+    fermentation_complete = (
+            latest_reading is not None
+            and end_time < latest_reading.timestamp
+    )
 
-    # Look backwards from the end for sustained stability
-    for i in range(len(gravities) - consecutive_stable, fermentation_start_index, -1):
-        is_stable = True
-        # Check if the next consecutive_stable readings are all within threshold
-        for j in range(consecutive_stable - 1):
-            if i + j + 1 >= len(gravities):
-                is_stable = False
-                break
-            gravity_change = abs(float(gravities[i + j]) - float(gravities[i + j + 1]))
-            if gravity_change > stability_threshold:
-                is_stable = False
-                break
-
-        if is_stable:
-            fermentation_end_index = i
-            break
-
-    # Check if fermentation has started
-    if fermentation_start_index == 0:
-        if float(gravities[0]) - float(gravities[-1]) < gravity_drop_threshold:
-            return JsonResponse({
-                'slope': 'Fermentation not started',
-                'slope_raw': 0
-            })
-
-    # Use data from fermentation start to end
-    active_timestamps = timestamps[fermentation_start_index:fermentation_end_index + 1]
-    active_gravities = gravities[fermentation_start_index:fermentation_end_index + 1]
-
-    if len(active_timestamps) < 2:
-        return JsonResponse({'error': 'Not enough active fermentation data'}, status=404)
-
-    # Convert timestamps to DAYS since fermentation start
-    first_time = active_timestamps[0]
-    x_data = np.array([(t - first_time).total_seconds() / 86400 for t in active_timestamps])
-    y_data = np.array([float(g) for g in active_gravities])
-
-    # Calculate means
-    x_mean = np.mean(x_data)
-    y_mean = np.mean(y_data)
-
-    # Calculate slope
-    numerator = np.sum((x_data - x_mean) * (y_data - y_mean))
-    denominator = np.sum((x_data - x_mean) ** 2)
-
-    if denominator == 0:
-        return JsonResponse({'error': 'Cannot calculate slope'}, status=404)
-
-    slope = numerator / denominator
-
-    # Format slope nicely (gravity points per day)
-    slope_formatted = f"{slope:.4f} points/day"
-
-    # Check if fermentation is complete (end_index is not the last reading)
-    fermentation_complete = fermentation_end_index < len(gravities) - 1
-    fermentation_end_time = timezone.localtime(timestamps[fermentation_end_index]).strftime(
-        '%m-%d-%Y %I:%M:%S %p') if fermentation_complete else "Still fermenting"
-
-    # Calculate total fermentation time
     if fermentation_complete:
-        duration_delta = timestamps[fermentation_end_index] - active_timestamps[0]
-        days = duration_delta.days
-        hours = duration_delta.seconds // 3600
-        minutes = (duration_delta.seconds % 3600) // 60
-        fermentation_duration = f"{days}:{hours}:{minutes}"
+        fermentation_end_time = (
+            timezone.localtime(end_time)
+            .strftime('%m-%d-%Y %I:%M:%S %p')
+        )
     else:
-        fermentation_duration = "Still fermenting"
+        fermentation_end_time = "Still fermenting"
+
+    duration = (
+        FermentationService.calculate_duration(
+            start_time,
+            end_time
+        )
+        if fermentation_complete
+        else None
+    )
 
     return JsonResponse({
-        'slope': slope_formatted,
+        'slope': f'{slope:.4f} points/day',
         'slope_raw': float(slope),
-        'fermentation_started_at': timezone.localtime(active_timestamps[0]).strftime('%m-%d-%Y %I:%M:%S %p'),
+        'fermentation_started_at': (
+            timezone.localtime(start_time)
+            .strftime('%m-%d-%Y %I:%M:%S %p')
+        ),
         'fermentation_ended_at': fermentation_end_time,
         'fermentation_complete': fermentation_complete,
-        'fermentation_duration': fermentation_duration,
-        'data_points_used': len(active_gravities)
+        'fermentation_duration': (
+            str(duration)
+            if duration is not None
+            else None
+        ),
+        'data_points_used': len(active_readings)
     })
 
 @require_GET
 @login_required
 def get_inkbird_freeze_data(request):
-    freeze_form = TempGetFreezeForm()
-    freeze_current = freeze_form.temp_reading()
-    freeze_target = freeze_form.set_temp()
+    try:
+        inkbird = InkbirdService(DEVICE_ID2)
 
-    if freeze_form:
+        freeze_current = inkbird.get_temperature()
+        freeze_target = inkbird.get_target_temperature()
+
         return JsonResponse({
-            'freeze_set_temp': freeze_target,
-            'freeze_current_temp': freeze_current,
+            "freeze_set_temp": freeze_target,
+            "freeze_current_temp": freeze_current,
         })
-    else:
-        return JsonResponse({'error': 'No data found'}, status=404)
+
+    except Exception as e:
+        logger.exception("Failed to retrieve keezer Inkbird data.")
+
+        return JsonResponse(
+            {"error": str(e)},
+            status=500
+        )
 
 @require_GET
 @login_required
 def get_inkbird_ferm_data(request):
-    ferm_form = TempGetFermForm()
-    ferm_current = ferm_form.temp_reading()
-    ferm_target = ferm_form.set_temp()
+    try:
+        inkbird = InkbirdService(DEVICE_ID)
 
-    if ferm_form:
+        ferm_current = inkbird.get_temperature()
+        ferm_target = inkbird.get_target_temperature()
+
         return JsonResponse({
-            'ferm_set_temp': ferm_target,
-            'ferm_current_temp': ferm_current,
+            "ferm_set_temp": ferm_target,
+            "ferm_current_temp": ferm_current,
         })
-    else:
-        return JsonResponse({'error': 'No data found'}, status=404)
+
+    except Exception as e:
+        logger.exception("Failed to retrieve fermentation Inkbird data.")
+
+        return JsonResponse(
+            {"error": str(e)},
+            status=500
+        )
 
 @login_required
 def import_tilt_csv(request):
     if request.method == 'POST':
         form = CSVImportForm(request.POST, request.FILES)
+
         if form.is_valid():
             csv_file = request.FILES['csv_file']
 
-            # Decode the file
-            decoded_file = csv_file.read().decode('utf-8').splitlines()
-            reader = csv.DictReader(decoded_file)
+            results = ImportService.import_tilt_csv(csv_file)
 
-            success_count = 0
-            error_count = 0
-            errors = []
+            success_count = results['success_count']
+            error_count = results['error_count']
+            errors = results['errors']
 
-            for row_num, row in enumerate(reader, start=2):  # Start at 2 because row 1 is header
-                try:
-                    # Handle both old format (name, temperature, gravity...) and new format (Beer, Temp, SG...)
-                    name = row.get('Beer') or row.get('name', 'Unknown')
-                    name = name.strip() if name else 'Unknown'
-
-                    temperature = float(row.get('Temp') or row.get('temperature', 0))
-                    gravity = float(row.get('SG') or row.get('gravity', 0))
-                    color = row.get('Color') or row.get('color', '')
-                    color = color.strip() if color else ''
-
-                    # Handle timestamp - could be 'Time' or 'timestamp'
-                    timestamp_str = row.get('Time') or row.get('timestamp', '')
-                    timestamp_str = timestamp_str.strip() if timestamp_str else ''
-
-                    comment = row.get('Comment') or row.get('comment', '')
-                    comment = comment.strip() if comment else ''
-
-                    # Parse timestamp - handles multiple formats including "1/15/25 1:37:45 PM"
-                    if timestamp_str:
-                        timestamp = parser.parse(timestamp_str)
-                    else:
-                        timestamp = timezone.now()
-
-                    # Create the record
-                    FermentationDataTilt.objects.create(
-                        name=name,
-                        temperature=temperature,
-                        gravity=gravity,
-                        color=color,
-                        timestamp=timestamp,
-                        comment=comment
-                    )
-                    success_count += 1
-
-                except Exception as e:
-                    error_count += 1
-                    errors.append(f"Row {row_num}: {str(e)}")
-
-            # Show results
             if success_count > 0:
-                messages.success(request, f'Successfully imported {success_count} records.')
+                messages.success(
+                    request,
+                    f'Successfully imported {success_count} records.'
+                )
+
             if error_count > 0:
-                messages.warning(request, f'{error_count} rows had errors. See details below.')
-                for error in errors[:10]:  # Show first 10 errors
+                messages.warning(
+                    request,
+                    f'{error_count} rows had errors. '
+                    'See details below.'
+                )
+
+                for error in errors[:10]:
                     messages.error(request, error)
 
             return redirect('import_tilt_csv')
+
     else:
         form = CSVImportForm()
 
-    return render(request, 'dashboard/import_csv.html', {'form': form})
+    return render(
+        request,
+        'dashboard/import_csv.html',
+        {'form': form}
+    )
+
+
+

@@ -362,15 +362,6 @@
               <a class="nav-link" href="{% url 'import_tilt_csv' %}">
                 <i class="fas fa-file-csv me-2"></i>Import CSV Data
               </a>
-<!--              <a class="nav-link" href="update_google_sheet_url">-->
-<!--                <i class="fas fa-database me-2"></i>-->
-<!--                Google Sheet Manager-->
-<!--              </a>-->
-
-<!--              <a class="nav-link" href="google_sheets_dashboard">-->
-<!--                <i class="fas fa-chart-line me-2"></i>-->
-<!--                Sheets Dashboard-->
-<!--              </a>-->
             </div>
           </div>
 
@@ -722,10 +713,20 @@
         });
       });
 
-      function fetchLatestTiltData() {
-        fetch("/api/latest-tilt-data/")
+      let currentBatch = null;
+
+      function fetchLatestTiltData(batchName = null) {
+        const url = batchName
+          ? `/api/latest-tilt-data/?batch=${encodeURIComponent(batchName)}`
+          : "/api/latest-tilt-data/";
+
+        console.log('Fetching tilt data from:', url);
+        console.log('Current batch:', batchName);
+
+        fetch(url)
           .then(response => response.json())
           .then(data => {
+            console.log('Tilt data received:', data);
             if (data.error) {
               document.getElementById("latest-temp").textContent = "--";
               document.getElementById("latest-gravity").textContent = "--";
@@ -745,9 +746,6 @@
           .catch(err => console.error("Failed to fetch tilt data:", err));
       }
 
-      fetchLatestTiltData();
-      setInterval(fetchLatestTiltData, 300000);
-
       function fetchLatestFreezeData() {
         fetch("/api/latest-freeze-ink-data/")
           .then(response => response.json())
@@ -759,9 +757,6 @@
           })
           .catch(err => console.error("Failed to fetch freeze data:", err));
       }
-
-      fetchLatestFreezeData();
-      setInterval(fetchLatestFreezeData, 300000);
 
       function fetchLatestFermData() {
         fetch("/api/latest-ferm-ink-data/")
@@ -775,13 +770,18 @@
           .catch(err => console.error("Failed to fetch ferm data:", err));
       }
 
-      fetchLatestFermData();
-      setInterval(fetchLatestFermData, 300000);
+      function calculate_slope(batchName = null) {
+        const url = batchName
+          ? `/api/calculate-slope/?batch=${encodeURIComponent(batchName)}`
+          : "/api/calculate-slope/";
 
-      function calculate_slope() {
-        fetch("/api/calculate-slope/")
+        console.log('Fetching slope from:', url);
+        console.log('Batch for slope:', batchName);
+
+        fetch(url)
           .then(response => response.json())
           .then(data => {
+            console.log('Slope data received:', data);
             if (!data.error) {
               document.getElementById("ferm-rate").textContent = data.slope;
               document.getElementById("ferm-rate-detail").textContent = data.slope;
@@ -799,8 +799,54 @@
           .catch(err => console.error("Failed to fetch slope data:", err));
       }
 
+      function resetToLatest() {
+        console.log('Resetting to latest batch');
+        currentBatch = null;
+        fetchLatestTiltData();
+        calculate_slope();
+      }
+
+      // Initial load - latest batch
+      fetchLatestTiltData();
       calculate_slope();
-      setInterval(calculate_slope, 300000);
+      fetchLatestFreezeData();
+      fetchLatestFermData();
+
+      // Auto-refresh every 5 minutes
+      setInterval(() => {
+        fetchLatestTiltData(currentBatch);
+        calculate_slope(currentBatch);
+        fetchLatestFreezeData();
+        fetchLatestFermData();
+      }, 300000);
+
+      // When user selects a batch from the form
+      document.addEventListener('DOMContentLoaded', function() {
+        const batchForm = document.querySelector('form[method="POST"]');
+        console.log('Batch form found:', batchForm);
+
+        if (batchForm) {
+          batchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const selectElement = document.querySelector('select[name="name"]');
+            console.log('Select element:', selectElement);
+            console.log('Selected value:', selectElement ? selectElement.value : 'not found');
+
+            if (selectElement && selectElement.value) {
+              currentBatch = selectElement.value;
+              console.log('Setting currentBatch to:', currentBatch);
+
+              // Update the cards with the selected batch data
+              fetchLatestTiltData(currentBatch);
+              calculate_slope(currentBatch);
+
+              // Then submit the form to load the chart
+              batchForm.submit();
+            }
+          });
+        }
+      });
 
       // Auto-resize Plotly chart
       document.addEventListener('DOMContentLoaded', function() {

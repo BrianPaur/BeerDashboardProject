@@ -1,145 +1,6 @@
 from django import forms
-from datetime import date, timedelta
-from tuya_connector import TuyaOpenAPI
-# from dashboard.creds.creds import ACCESS_ID, ACCESS_KEY, ENDPOINT, DEVICE_ID,DEVICE_ID2
-import json
-with open('/etc/secrets/creds.json') as f:
-    creds = json.load(f)
-
-ACCESS_ID = creds['ACCESS_ID']
-ACCESS_KEY = creds['ACCESS_KEY']
-ENDPOINT = creds['ENDPOINT']
-DEVICE_ID = creds['DEVICE_ID']
-DEVICE_ID2 = creds['DEVICE_ID2']
-
-from django import forms
-from .models import GoogleSheetSourceData, FermentationDataTilt
+from .services.tilt import TiltService
 from django.contrib.auth.models import User
-
-class DateForm(forms.Form):
-    start = forms.DateField(widget=forms.DateInput(attrs={'type':'date'}))
-    end = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
-
-class DateFilterForm(forms.Form):
-    start_date = forms.DateField(required=False, widget=forms.TextInput(attrs={'type': 'date'}))
-    end_date = forms.DateField(required=False, widget=forms.TextInput(attrs={'type': 'date'}))
-
-class TempSetFermForm(forms.Form):
-    temp = forms.FloatField(min_value=0, label="Temperature")
-    openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
-    openapi.connect()
-
-    def set_temp(self, temp):
-        commands = {"commands": [{"code": "temp_set", "value": int(temp * 10)}]}
-
-        data_set_ferm = self.openapi.post(f"/v1.0/iot-03/devices/{DEVICE_ID}/commands", commands)
-
-        # Return response or error details
-        if 'success' in data_set_ferm and data_set_ferm['success']:
-            return f"Temperature set to {temp}°F successfully."
-        else:
-            error_message = data_set_ferm.get('msg', 'Unknown error')
-            return f"Failed to set temperature: {error_message}"
-
-class TempGetFermForm(forms.Form):
-    openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
-    openapi.connect()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._status_data = None  # Internal cache
-
-    def _get_status_data(self):
-        if self._status_data is None:
-            self._status_data = self.openapi.get(f"/v1.0/iot-03/devices/{DEVICE_ID}/status")
-        return self._status_data
-
-    def temp_reading(self):
-        data = self._get_status_data()
-        return data['result'][3]['value'] / 10
-
-    def set_temp(self):
-        data = self._get_status_data()
-        return data['result'][2]['value'] / 10
-
-class TempSetFreezeForm(forms.Form):
-    temp = forms.FloatField(min_value=0, label="Temperature")
-    openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
-    openapi.connect()
-
-    def set_temp(self, temp):
-        commands = {"commands": [{"code": "temp_set", "value": int(temp * 10)}]}
-
-        data_set_freeze = self.openapi.post(f"/v1.0/iot-03/devices/{DEVICE_ID2}/commands", commands)
-
-        # Return response or error details
-        if 'success' in data_set_freeze and data_set_freeze['success']:
-            return f"Temperature set to {temp}°F successfully."
-        else:
-            error_message = data_set_freeze.get('msg', 'Unknown error')
-            return f"Failed to set temperature: {error_message}"
-
-class TempGetFreezeForm(forms.Form):
-    openapi = TuyaOpenAPI(ENDPOINT, ACCESS_ID, ACCESS_KEY)
-    openapi.connect()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._status_data = None  # Internal cache
-
-    def _get_status_data(self):
-        if self._status_data is None:
-            self._status_data = self.openapi.get(f"/v1.0/iot-03/devices/{DEVICE_ID2}/status")
-        return self._status_data
-
-    def temp_reading(self):
-        data = self._get_status_data()
-        return data['result'][3]['value'] / 10
-
-    def set_temp(self):
-        data = self._get_status_data()
-        return data['result'][2]['value'] / 10
-
-class GoogleSheetURLForm(forms.ModelForm):
-    class Meta:
-        model = GoogleSheetSourceData
-        fields = ['sourceURL','readable_name']
-        widgets = {
-            'readable_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter Beer Name'}),
-            'sourceURL': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'Enter a readable name'}),
-
-        }
-
-class SelectGoogleSheetForm(forms.Form):
-    google_sheet_url = forms.ModelChoiceField(
-        queryset=GoogleSheetSourceData.objects.all(),
-        empty_label="Select Data Sheet",
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        label="Select Data Sheet"
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Customize the dropdown display to show readable_name
-        self.fields['google_sheet_url'].queryset = GoogleSheetSourceData.objects.all()
-        self.fields['google_sheet_url'].label_from_instance = lambda obj: f"{obj.readable_name}"
-
-class GoogleSheetSourceDataForm(forms.ModelForm):
-    class Meta:
-        model = GoogleSheetSourceData
-        fields = ['sourceURL', 'readable_name']
-
-    def clean_sourceURL(self):
-        source_url = self.cleaned_data['sourceURL']
-        if GoogleSheetSourceData.objects.filter(sourceURL=source_url).exists():
-            raise forms.ValidationError("This URL already exists in the database.")
-        return source_url
-
-    def clean_readable_name(self):
-        readable_name = self.cleaned_data['readable_name']
-        if GoogleSheetSourceData.objects.filter(readable_name=readable_name).exists():
-            raise forms.ValidationError("This readable name already exists in the database.")
-        return readable_name
 
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
@@ -155,14 +16,34 @@ class UserRegistrationForm(forms.ModelForm):
             raise forms.ValidationError('Passwords don’t match.')
         return cd['password2']
 
+
+class TempSetFermForm(forms.Form):
+    temp = forms.FloatField(
+        min_value=0,
+        label="Temperature"
+    )
+
+class TempSetFreezeForm(forms.Form):
+    temp = forms.FloatField(
+        min_value=0,
+        label="Temperature"
+    )
+
 class TiltDataSelectForm(forms.Form):
-    name = forms.ChoiceField(choices=[], label='Select Batch')
+    name = forms.ChoiceField(
+        choices=[],
+        label="Select Batch"
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Populate the dropdown with distinct batch names
-        batch_names = FermentationDataTilt.objects.values_list('name', flat=True).distinct()
-        self.fields['name'].choices = [(name, name) for name in batch_names if name]
+
+        batch_names = TiltService.get_batch_names()
+
+        self.fields["name"].choices = [
+            (name, name)
+            for name in batch_names
+        ]
 
 class CSVImportForm(forms.Form):
     csv_file = forms.FileField(
