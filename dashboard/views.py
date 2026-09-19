@@ -26,7 +26,11 @@ from .services.inkbird import InkbirdService
 from .services.fermentation import FermentationService
 from .services.tilt import TiltService
 from .services.imports import ImportService
-from dashboard.creds.creds import DEVICE_ID, DEVICE_ID2
+
+with open('/etc/secrets/creds.json') as f:
+    creds = json.load(f)
+DEVICE_ID = creds['DEVICE_ID']
+DEVICE_ID2 = creds['DEVICE_ID2']
 
 import json
 
